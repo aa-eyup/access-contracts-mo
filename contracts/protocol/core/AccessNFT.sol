@@ -11,8 +11,11 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
  */
 contract Access is ERC1155 {
     string ACCESS_TYPE;
+    address private CONFIG;
 
-    constructor(string memory accessType, string memory uri_) ERC1155(uri_) {
-        ACCESS_TYPE = accessType;
+
+    constructor(string memory _accessType, address _contentConfig, string memory uri_) ERC1155(uri_) {
+        ACCESS_TYPE = _accessType;
+        CONFIG = _contentConfig;
     }
 }

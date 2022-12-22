@@ -10,4 +10,8 @@ pragma solidity 0.8.17;
  */
 contract PaymentManager {
     
+    function pay(address _contentConfig) external {
+        // call on AccessNFT to check amount to pull
+        // call on token to transferFrom funds (revert if call fails)
+    }
 }
