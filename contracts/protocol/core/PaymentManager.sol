@@ -27,7 +27,7 @@ contract PaymentManager is IPaymentManager {
         uint256 price = abi.decode(data, (uint256));
 
         // call on token to transferFrom funds (revert if call fails)
-        bool transferSuccess = USDC.transferFrom(_payer, address(this), price);
+        bool transferSuccess = doUSDCTransfer(_payer, address(this), price);
         require(transferSuccess, "failed to transfer USDC from payer");
         facilitatorAccounts[msg.sender] = facilitatorAccounts[msg.sender] + price;
         
@@ -40,9 +40,15 @@ contract PaymentManager is IPaymentManager {
         require(activeFacilitators[msg.sender], "must be called by an active PaymentFacilitator contract");
         require(_amount <= facilitatorAccounts[msg.sender]);
         facilitatorAccounts[msg.sender] = facilitatorAccounts[msg.sender] - _amount;
-        bool transferSuccess = USDC.transferFrom(address(this), _recipient, _amount);
+        bool transferSuccess = doUSDCTransfer(address(this), _recipient, _amount);
         require(transferSuccess, "failed to transfer USDC from PaymentManager");
         return true;
+    }
+
+    function doUSDCTransfer(address _from, address _to, uint256 _amount) private returns(bool) {
+        require(_from != address(0), "can not transfer USDC from 0 address");
+        require(_to != address(0), "can not transfer USDC to 0 address");
+        return USDC.transferFrom(_from, _to, _amount);
     }
 
     function setFacilitator(address _facilitator, bool _active) external {
