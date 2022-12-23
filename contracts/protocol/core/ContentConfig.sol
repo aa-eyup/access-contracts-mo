@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
+import "../../interfaces/IConfig.sol";
+
 /**
  * Getter for contracts associated to a given Content Contract.
  * Deployed first then after the content related contract are related, this config is updated,
  */
-contract ContentConfig {
+contract ContentConfig is IConfig {
     string ACCESS_TYPE_VIEW_MONTHLY = "access-type-view-monthly";
     string ACCESS_TYPE_ADVERTISE = "access-type-advertise";
 
     address paymentFacilitator;
     address owners;
     mapping(string => address) accessNFTs;
-
+    
     // TODO only owner
     function init(string[] memory _accessTypes, address[] memory _accessNFTs, address _paymentFacilitator, address _owners) external {
         assert(_accessTypes.length != 0 && _accessNFTs.length != 0);
@@ -30,7 +32,7 @@ contract ContentConfig {
         return paymentFacilitator;
     }
 
-    function getOwners() external view returns(address) {
+    function getOwnersContract() external view returns(address) {
         return owners;
     }
 

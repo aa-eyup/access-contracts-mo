@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
+import "../../interfaces/IPaymentManager.sol";
+import "../../interfaces/IConfig.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
 /**
  * Serves as access point to deposit/withdraw funds.
  * When a content accessor deposits funds to access content, 
@@ -11,14 +16,54 @@ pragma solidity 0.8.17;
  * Checks the AccessNFT to see if payer already has access, if not, mints token on AccessNFT for payer.
  */
 contract PaymentFacilitator {
-    address private CONFIG;
+    IConfig private CONFIG;
+    IPaymentManager private paymentManager;
 
-    constructor (address _contentConfig) {
-        CONFIG = _contentConfig;
+    mapping(address => uint256) paid;
+
+    constructor (address _contentConfig, address _paymentManager) {
+        CONFIG = IConfig(_contentConfig);
+        paymentManager = IPaymentManager(_paymentManager);
     }
 
-    function pay() external {
-        // call PaymentManager to actually draw funds from payer account
-        // pass in config address
+    function pay(uint256 _id, string memory _accessType) external returns(bool) {
+        return _pay(_id, _accessType, msg.sender, msg.sender);
+    }
+
+    function payFor(uint256 _id, string memory _accessType, address _accessor) external returns(bool) {
+        return _pay(_id, _accessType, _accessor, msg.sender);
+    }
+
+    function _pay(uint256 _id, string memory _accessType, address _accessor, address _payer) private returns(bool) {
+        IERC1155 accessNFT = IERC1155(CONFIG.getAccessNFT(_accessType));
+        IERC721 owners = IERC721(CONFIG.getOwnersContract());
+        // PaymentManager is responsible for actually pulling funds
+        (bool paySuccess, uint256 amountPaid) = paymentManager.pay(_payer, address(accessNFT), _id);
+        require(paySuccess, "failed to pay for access");
+
+        // update the amount owner of the content token has been paid
+        address owner = owners.ownerOf(_id);
+        paid[owner] = paid[owner] + amountPaid;
+
+        uint256 balance = accessNFT.balanceOf(_accessor, _id);
+        if (!(balance > 0)) {
+            (bool mintSuccess, ) = address(accessNFT).call(abi.encodeWithSignature("mint(uint256,address)", _id, _accessor));
+            require(mintSuccess, "failed to mint acces token");
+        }
+        // maybe update the last paid time depending on the access type?
+        // emit event for latest payment date?
+        return true;
+    }
+
+    function withdraw(uint256 _id) external returns(bool, uint256) {
+        IERC721 owners = IERC721(CONFIG.getOwnersContract());
+        address owner = owners.ownerOf(_id);
+        require(msg.sender == owner);
+        require(paid[owner] > 0);
+        
+        uint256 amountToWithdraw = paid[owner];
+        paid[owner] = paid[owner] - amountToWithdraw;
+        bool withdrawSuccess = paymentManager.withdraw(owner, amountToWithdraw);
+        return (withdrawSuccess, amountToWithdraw);
     }
 }
