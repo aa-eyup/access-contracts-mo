@@ -13,23 +13,23 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
  */
 contract Access is ERC1155 {
     string ACCESS_TYPE;
-    IConfig private CONFIG;
+    IConfig private config;
 
     // tokenId => price to access the token
     mapping(uint256 => uint256) prices;
 
     constructor(string memory _accessType, address _contentConfig, string memory uri_) ERC1155(uri_) {
         ACCESS_TYPE = _accessType;
-        CONFIG = IConfig(_contentConfig);
+        config = IConfig(_contentConfig);
     }
 
     function mint(uint256 _id, address _to) external {
-        require(msg.sender == CONFIG.getPaymentFacilitator());
+        require(msg.sender == config.getPaymentFacilitator());
         _mint(_to, _id, 1, "");
     }
 
     function setPrice(uint256 _id, uint256 _price) external {
-        IERC721 owners = IERC721(CONFIG.getOwnersContract());
+        IERC721 owners = IERC721(config.getOwnersContract());
         address owner = owners.ownerOf(_id);
         bool isApproved = owners.isApprovedForAll(owner, msg.sender);
         require(msg.sender == owner || isApproved);

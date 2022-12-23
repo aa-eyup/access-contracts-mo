@@ -16,13 +16,13 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
  * Checks the AccessNFT to see if payer already has access, if not, mints token on AccessNFT for payer.
  */
 contract PaymentFacilitator {
-    IConfig private CONFIG;
+    IConfig private config;
     IPaymentManager private paymentManager;
 
     mapping(address => uint256) paid;
 
     constructor (address _contentConfig, address _paymentManager) {
-        CONFIG = IConfig(_contentConfig);
+        config = IConfig(_contentConfig);
         paymentManager = IPaymentManager(_paymentManager);
     }
 
@@ -35,8 +35,8 @@ contract PaymentFacilitator {
     }
 
     function _pay(uint256 _id, string memory _accessType, address _accessor, address _payer) private returns(bool) {
-        IERC1155 accessNFT = IERC1155(CONFIG.getAccessNFT(_accessType));
-        IERC721 owners = IERC721(CONFIG.getOwnersContract());
+        IERC1155 accessNFT = IERC1155(config.getAccessNFT(_accessType));
+        IERC721 owners = IERC721(config.getOwnersContract());
         // PaymentManager is responsible for actually pulling funds
         (bool paySuccess, uint256 amountPaid) = paymentManager.pay(_payer, address(accessNFT), _id);
         require(paySuccess, "failed to pay for access");
@@ -56,7 +56,7 @@ contract PaymentFacilitator {
     }
 
     function withdraw(uint256 _id) external returns(bool, uint256) {
-        IERC721 owners = IERC721(CONFIG.getOwnersContract());
+        IERC721 owners = IERC721(config.getOwnersContract());
         address owner = owners.ownerOf(_id);
         require(msg.sender == owner);
         require(paid[owner] > 0);

@@ -9,9 +9,9 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
  * for that particular token.
  */
 contract Owners is ERC721 {
-    address private CONFIG;
+    address private config;
 
     constructor(address _contentConfig) ERC721("name", "symbol") {
-        CONFIG = _contentConfig;
+        config = _contentConfig;
     }
 }
