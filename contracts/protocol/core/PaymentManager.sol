@@ -5,7 +5,8 @@ import "../../interfaces/IPaymentManager.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
- * Serves as the single source of funds used to pay for accessing Content Contracts.
+ * @title PaymentManager contract
+ * @notice Serves as the single source of funds used to pay for accessing Content Contracts.
  * Payments made to access any given content will be routed to this contract.
  * When content owners want to withdraw funds, the funds will come from this contract.
  * PaymentFacilitator contracts have accounts on this contract to keep track of how many

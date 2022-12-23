@@ -4,7 +4,8 @@ pragma solidity 0.8.17;
 import "../../interfaces/IConfig.sol";
 
 /**
- * Getter for contracts associated to a given Content Contract.
+ * @title ContentConfig
+ * @notice Used as getter for contracts associated to a given Content Contract.
  * Deployed first then after the content related contract are related, this config is updated,
  */
 contract ContentConfig is IConfig {
@@ -13,12 +14,19 @@ contract ContentConfig is IConfig {
 
     address paymentFacilitator;
     address owners;
+    address contentContract;
     mapping(string => address) accessNFTs;
     
     // TODO only owner
-    function init(string[] memory _accessTypes, address[] memory _accessNFTs, address _paymentFacilitator, address _owners) external {
-        assert(_accessTypes.length != 0 && _accessNFTs.length != 0);
-        assert(_accessTypes.length == _accessNFTs.length);
+    function init(
+        string[] memory _accessTypes,
+        address[] memory _accessNFTs,
+        address _paymentFacilitator,
+        address _owners,
+        address _contentContract
+    ) external {
+        require(_accessTypes.length != 0 && _accessNFTs.length != 0);
+        require(_accessTypes.length == _accessNFTs.length);
 
         for (uint8 i = 0; i < _accessTypes.length; i++) {
             accessNFTs[_accessTypes[i]] = _accessNFTs[i];
@@ -26,6 +34,7 @@ contract ContentConfig is IConfig {
 
         paymentFacilitator = _paymentFacilitator;
         owners = _owners;
+        contentContract = _contentContract;
     }
 
     function getPaymentFacilitator() external view returns(address){

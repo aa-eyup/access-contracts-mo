@@ -7,7 +7,8 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
- * Serves as access point to deposit/withdraw funds.
+ * @title PaymentFacilitator contract
+ * @notice Serves as access point to deposit/withdraw funds.
  * When a content accessor deposits funds to access content, 
  * it will be sent to this contract which will then forward it to the PaymentManager contract.
  * When a content creator wants to withdraw funds, this contract will pull funds from PaymentManager

@@ -6,7 +6,8 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 /**
- * Accessors of Content Contracts become owners of an NFT.
+ * @title Access ERC1155 Contract
+ * @notice Accessors of Content Contracts become owners of an NFT.
  * Ownership of the NFT can be checked when access to the Content Contract is requested.
  * Each Access Type would require its own Access NFT contract.
  * Assumption: TokenIds on this NFT contract map to the tokenId on the Contract Contract.
