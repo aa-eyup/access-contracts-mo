@@ -34,8 +34,6 @@ contract PaymentManager is IPaymentManager {
         bool transferSuccess = doUSDCTransfer(_payer, address(this), price);
         require(transferSuccess, "failed to transfer USDC from payer");
         facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance + price;
-        
-        // emit event
 
         return (true, price);
     }
@@ -57,6 +55,10 @@ contract PaymentManager is IPaymentManager {
 
     function setFacilitator(address _facilitator, bool _active) external {
         // only admin
-        facilitatorAccounts[_facilitator].active = _active;
+        FacilitatorAccount storage account = facilitatorAccounts[_facilitator];
+        if (!_active) {
+            require(account.balance == 0, "unable to deactivate a facilitator with a non-zero balance");
+        }
+        account.active = _active;
     }
 }
