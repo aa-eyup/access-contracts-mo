@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 /**
  * @title Owners ERC721 contract
- * @notice Carries information regarding which account "owns" a given token on a Content Contract.
- * Ownership pertains to rights over the funds paid to access a particular token.
+ * @notice Used as source of truth regarding which account "owns" rights over the funds paid to access a given token
+ * on the Content Contract.
  */
 contract Owners is ERC721 {
     address private config;
