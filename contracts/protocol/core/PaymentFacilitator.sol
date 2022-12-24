@@ -51,7 +51,8 @@ contract PaymentFacilitator {
             (bool mintSuccess, ) = address(accessNFT).call(abi.encodeWithSignature("mint(uint256,address)", _id, _accessor));
             require(mintSuccess, "failed to mint acces token");
         }
-        // maybe update the last paid time depending on the access type?
+        (bool setTimestampSuccess, ) = address(accessNFT).call(abi.encodeWithSignature("setPreviousPaymentTime(uint256,address)", _id, _accessor));
+        require(setTimestampSuccess, "failed to set previous payment timestamp");
         // emit event for latest payment date?
         return true;
     }

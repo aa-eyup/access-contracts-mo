@@ -18,15 +18,26 @@ contract Access is ERC1155 {
 
     // tokenId => price to access the token
     mapping(uint256 => uint256) prices;
+    // address => tokenId => timestamp
+    mapping(address => mapping(uint256 => uint256)) previousPaymentTimestamp;
 
     constructor(string memory _accessType, address _contentConfig, string memory uri_) ERC1155(uri_) {
         ACCESS_TYPE = _accessType;
         config = IConfig(_contentConfig);
     }
 
-    function mint(uint256 _id, address _to) external {
-        require(msg.sender == config.getPaymentFacilitator());
+    function mint(uint256 _id, address _to) external onlyFacilitator {
         _mint(_to, _id, 1, "");
+    }
+
+    /**
+     * Override or set the timestamp which indicates the last time the account paid to access a given tokenId
+     * The timestamp set can be used to check if an accessor needs to make another payment.
+     * @param _id tokenId
+     * @param _accessor the account which benefits from the payment
+     */
+    function setPreviousPaymentTime(uint256 _id, address _accessor) external onlyFacilitator {
+        previousPaymentTimestamp[_accessor][_id] = block.timestamp;
     }
 
     function setPrice(uint256 _id, uint256 _price) external {
@@ -39,5 +50,10 @@ contract Access is ERC1155 {
 
     function getPrice(uint256 _id) external view returns(uint256) {
         return prices[_id];
+    }
+
+    modifier onlyFacilitator() {
+        require(msg.sender == config.getPaymentFacilitator());
+        _;
     }
 }
