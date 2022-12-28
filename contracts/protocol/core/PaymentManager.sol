@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import "../../interfaces/IPaymentManager.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../../interfaces/IPaymentManager.sol";
+import "./BaseRoleCheckerPausable.sol";
 
 /**
  * @title PaymentManager contract
@@ -12,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * PaymentFacilitator contracts have accounts on this contract to keep track of how many
  * funds were deposited/withdrawn to/from this contract.
  */
-contract PaymentManager is IPaymentManager {
+contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
 
     IERC20 USDC = IERC20(0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E);
     mapping(address => FacilitatorAccount) facilitatorAccounts;
@@ -20,6 +21,10 @@ contract PaymentManager is IPaymentManager {
     struct FacilitatorAccount {
         uint256 balance;
         bool active;
+    }
+
+    constructor(address _admin) {
+        __BaseRoleCheckerPausable__init(_admin);
     }
     
     function pay(address _payer, address _accessNFT, uint256 _tokenId) external returns(bool, uint256) {
@@ -53,8 +58,7 @@ contract PaymentManager is IPaymentManager {
         return USDC.transferFrom(_from, _to, _amount);
     }
 
-    function setFacilitator(address _facilitator, bool _active) external {
-        // only admin
+    function setFacilitator(address _facilitator, bool _active) external onlyAdmin {
         FacilitatorAccount storage account = facilitatorAccounts[_facilitator];
         if (!_active) {
             require(account.balance == 0, "unable to deactivate a facilitator with a non-zero balance");
