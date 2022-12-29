@@ -27,35 +27,25 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         __BaseRoleCheckerPausable__init(_admin);
     }
     
-    function pay(address _payer, address _accessNFT, uint256 _tokenId) external returns(bool, uint256) {
-        require(facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
-
+    function pay(address _payer, address _accessNFT, uint256 _tokenId) external activeFacilitator returns(uint256) {
         // call on AccessNFT to check amount to pull
-        (bool getPriceSuccess, bytes memory data) = _accessNFT.staticcall(abi.encodeWithSignature("getPrice(uint256)", _tokenId));
+        (bool getPriceSuccess, bytes memory getPriceData) = _accessNFT.staticcall(abi.encodeWithSignature("getPrice(uint256)", _tokenId));
         require(getPriceSuccess);
-        uint256 price = abi.decode(data, (uint256));
+        uint256 price = abi.decode(getPriceData, (uint256));
 
         // call on token to transferFrom funds (revert if call fails)
+        facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance + price;
         bool transferSuccess = doUSDCTransfer(_payer, address(this), price);
         require(transferSuccess, "failed to transfer USDC from payer");
-        facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance + price;
 
-        return (true, price);
+        return price;
     }
 
-    function withdraw(address _recipient, uint256 _amount) external returns(bool) {
-        require(facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
+    function withdraw(address _recipient, uint256 _amount) external activeFacilitator {
         require(_amount <= facilitatorAccounts[msg.sender].balance);
         facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance - _amount;
         bool transferSuccess = doUSDCTransfer(address(this), _recipient, _amount);
         require(transferSuccess, "failed to transfer USDC from PaymentManager");
-        return true;
-    }
-
-    function doUSDCTransfer(address _from, address _to, uint256 _amount) private returns(bool) {
-        require(_from != address(0), "can not transfer USDC from 0 address");
-        require(_to != address(0), "can not transfer USDC to 0 address");
-        return USDC.transferFrom(_from, _to, _amount);
     }
 
     function setFacilitator(address _facilitator, bool _active) external onlyAdmin {
@@ -64,5 +54,16 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
             require(account.balance == 0, "unable to deactivate a facilitator with a non-zero balance");
         }
         account.active = _active;
+    }
+
+    function doUSDCTransfer(address _from, address _to, uint256 _amount) private returns(bool) {
+        require(_from != address(0), "can not transfer USDC from 0 address");
+        require(_to != address(0), "can not transfer USDC to 0 address");
+        return USDC.transferFrom(_from, _to, _amount);
+    }
+
+    modifier activeFacilitator() {
+        require(facilitatorAccounts[msg.sender] && facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
+        _;
     }
 }
