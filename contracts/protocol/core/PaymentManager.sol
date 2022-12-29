@@ -27,9 +27,7 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         __BaseRoleCheckerPausable__init(_admin);
     }
     
-    function pay(address _payer, address _accessNFT, uint256 _tokenId) external returns(bool, uint256) {
-        require(facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
-
+    function pay(address _payer, address _accessNFT, uint256 _tokenId) external activeFacilitator returns(uint256) {
         // call on AccessNFT to check amount to pull
         (bool getPriceSuccess, bytes memory data) = _accessNFT.staticcall(abi.encodeWithSignature("getPrice(uint256)", _tokenId));
         require(getPriceSuccess);
@@ -40,16 +38,14 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         require(transferSuccess, "failed to transfer USDC from payer");
         facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance + price;
 
-        return (true, price);
+        return price;
     }
 
-    function withdraw(address _recipient, uint256 _amount) external returns(bool) {
-        require(facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
+    function withdraw(address _recipient, uint256 _amount) external activeFacilitator {
         require(_amount <= facilitatorAccounts[msg.sender].balance);
         facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance - _amount;
         bool transferSuccess = doUSDCTransfer(address(this), _recipient, _amount);
         require(transferSuccess, "failed to transfer USDC from PaymentManager");
-        return true;
     }
 
     function doUSDCTransfer(address _from, address _to, uint256 _amount) private returns(bool) {
@@ -64,5 +60,10 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
             require(account.balance == 0, "unable to deactivate a facilitator with a non-zero balance");
         }
         account.active = _active;
+    }
+
+    modifier activeFacilitator() {
+        require(facilitatorAccounts[msg.sender] && facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
+        _;
     }
 }

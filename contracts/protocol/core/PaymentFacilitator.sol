@@ -39,8 +39,7 @@ contract PaymentFacilitator {
         IERC1155 accessNFT = IERC1155(config.getAccessNFT(_accessType));
         IERC721 owners = IERC721(config.getOwnersContract());
         // PaymentManager is responsible for actually pulling funds
-        (bool paySuccess, uint256 amountPaid) = paymentManager.pay(_payer, address(accessNFT), _id);
-        require(paySuccess, "failed to pay for access");
+        uint256 amountPaid = paymentManager.pay(_payer, address(accessNFT), _id);
 
         // update the amount owner of the content token has been paid
         address owner = owners.ownerOf(_id);
@@ -57,7 +56,7 @@ contract PaymentFacilitator {
         return true;
     }
 
-    function withdraw(uint256 _id) external returns(bool, uint256) {
+    function withdraw(uint256 _id) external returns(uint256) {
         IERC721 owners = IERC721(config.getOwnersContract());
         address owner = owners.ownerOf(_id);
         require(msg.sender == owner);
@@ -65,7 +64,7 @@ contract PaymentFacilitator {
         
         uint256 amountToWithdraw = paid[owner];
         paid[owner] = paid[owner] - amountToWithdraw;
-        bool withdrawSuccess = paymentManager.withdraw(owner, amountToWithdraw);
-        return (withdrawSuccess, amountToWithdraw);
+        paymentManager.withdraw(owner, amountToWithdraw);
+        return (amountToWithdraw);
     }
 }
