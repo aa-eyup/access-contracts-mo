@@ -106,4 +106,8 @@ contract PaymentFacilitator {
 
         return (amountToWithdraw);
     }
+
+    function getOwnerBalance(address _owner) external view returns(uint256) {
+        return paid[_owner];
+    }
 }
