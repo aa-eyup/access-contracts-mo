@@ -48,18 +48,18 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         require(transferSuccess, "failed to transfer USDC from PaymentManager");
     }
 
-    function doUSDCTransfer(address _from, address _to, uint256 _amount) private returns(bool) {
-        require(_from != address(0), "can not transfer USDC from 0 address");
-        require(_to != address(0), "can not transfer USDC to 0 address");
-        return USDC.transferFrom(_from, _to, _amount);
-    }
-
     function setFacilitator(address _facilitator, bool _active) external onlyAdmin {
         FacilitatorAccount storage account = facilitatorAccounts[_facilitator];
         if (!_active) {
             require(account.balance == 0, "unable to deactivate a facilitator with a non-zero balance");
         }
         account.active = _active;
+    }
+
+    function doUSDCTransfer(address _from, address _to, uint256 _amount) private returns(bool) {
+        require(_from != address(0), "can not transfer USDC from 0 address");
+        require(_to != address(0), "can not transfer USDC to 0 address");
+        return USDC.transferFrom(_from, _to, _amount);
     }
 
     modifier activeFacilitator() {

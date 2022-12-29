@@ -20,7 +20,13 @@ contract PaymentFacilitator {
     IConfig private config;
     IPaymentManager private paymentManager;
 
+    // keep track of how much Owners are paid
     mapping(address => uint256) paid;
+
+    /**
+     * @dev Emitted when tokens are transferred from `payer` to the PaymentManager contract to gain access to token `id` on the `accessNFT` contract
+     */
+    event AccessPayment(address indexed accessNFT, address indexed accessor, address indexed payer, uint256 id);
 
     constructor (address _contentConfig, address _paymentManager) {
         config = IConfig(_contentConfig);
@@ -35,6 +41,20 @@ contract PaymentFacilitator {
         return _pay(_id, _accessType, _accessor, msg.sender);
     }
 
+    /**
+     * @dev Creates a transfer from the `_payer` to the PaymentManager where the funds are earmarked for the owner of `_id`.
+     * The price to pay is looked up from the accessNFT.
+     * If the balance of the `_accessor` for the given `_id` on the accessNFT is not greater than 0,
+     * then a token with id `_id` will be minted to the `_accessor`.
+     * A timestamp will be set to reflect the time of payment for the `_accessor` and then given `_id` on the respective accessNFT.
+     *
+     * Emits a {AccessPayment} event.
+     *
+     * Requirements:
+     *
+     * - the PaymenetManager contract must be approved by the `_payer` on the stablecoin's ERC20 contract
+     * - `_accessType` must be a valid access type which was set on the Config contract during initialization.
+     */
     function _pay(uint256 _id, string memory _accessType, address _accessor, address _payer) private returns(bool) {
         IERC1155 accessNFT = IERC1155(config.getAccessNFT(_accessType));
         IERC721 owners = IERC721(config.getOwnersContract());
@@ -52,7 +72,8 @@ contract PaymentFacilitator {
         }
         (bool setTimestampSuccess, ) = address(accessNFT).call(abi.encodeWithSignature("setPreviousPaymentTime(uint256,address)", _id, _accessor));
         require(setTimestampSuccess, "failed to set previous payment timestamp");
-        // emit event for latest payment date?
+
+        emit AccessPayment(address(accessNFT), _accessor, _payer, _id);
         return true;
     }
 
