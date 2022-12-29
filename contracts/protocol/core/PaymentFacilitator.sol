@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import "../../interfaces/IPaymentManager.sol";
-import "../../interfaces/IConfig.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "../../interfaces/IPaymentManager.sol";
+import "../../interfaces/IConfig.sol";
 
 /**
  * @title PaymentFacilitator contract
@@ -27,6 +27,10 @@ contract PaymentFacilitator {
      * @dev Emitted when tokens are transferred from `payer` to the PaymentManager contract to gain access to token `id` on the `accessNFT` contract
      */
     event AccessPayment(address indexed accessNFT, address indexed accessor, address indexed payer, uint256 id);
+    /**
+     * @dev Emitted when an owner withdraws funds which were paid to access a given `id` accross all `accessNFT`s
+     */
+    event Withdraw(address indexed owner, uint256 amount, uint256 id);
 
     constructor (address _contentConfig, address _paymentManager) {
         config = IConfig(_contentConfig);
@@ -77,6 +81,18 @@ contract PaymentFacilitator {
         return true;
     }
 
+    /**
+     * @dev Creates a transfer from the PaymentManager contract to the owner of the `_id` 
+     * as identified by the Owners NFT contract (not the owner of the id on the Content Contract).
+     * 1 owner maps to multiple accessNFTs so the owner has the rights to all funds paid for multiple access types.
+     *
+     * Emits a {Withdraw} event.
+     *
+     * Requirements:
+     *
+     * - the caller of the function (msg.sender) must be owner of `_id` on the Owners contract
+     * - amount of funds paid to access the given `_id` must be greater than 0
+     */
     function withdraw(uint256 _id) external returns(uint256) {
         IERC721 owners = IERC721(config.getOwnersContract());
         address owner = owners.ownerOf(_id);
@@ -86,6 +102,8 @@ contract PaymentFacilitator {
         uint256 amountToWithdraw = paid[owner];
         paid[owner] = paid[owner] - amountToWithdraw;
         paymentManager.withdraw(owner, amountToWithdraw);
+        emit Withdraw(owner, amountToWithdraw, _id);
+
         return (amountToWithdraw);
     }
 }

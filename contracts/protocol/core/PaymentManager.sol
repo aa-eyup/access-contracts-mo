@@ -29,14 +29,14 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
     
     function pay(address _payer, address _accessNFT, uint256 _tokenId) external activeFacilitator returns(uint256) {
         // call on AccessNFT to check amount to pull
-        (bool getPriceSuccess, bytes memory data) = _accessNFT.staticcall(abi.encodeWithSignature("getPrice(uint256)", _tokenId));
+        (bool getPriceSuccess, bytes memory getPriceData) = _accessNFT.staticcall(abi.encodeWithSignature("getPrice(uint256)", _tokenId));
         require(getPriceSuccess);
-        uint256 price = abi.decode(data, (uint256));
+        uint256 price = abi.decode(getPriceData, (uint256));
 
         // call on token to transferFrom funds (revert if call fails)
+        facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance + price;
         bool transferSuccess = doUSDCTransfer(_payer, address(this), price);
         require(transferSuccess, "failed to transfer USDC from payer");
-        facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance + price;
 
         return price;
     }
