@@ -10,19 +10,18 @@ import "./BaseRoleCheckerPausable.sol";
  * Deployed first then after the content related contract are related, this config is updated,
  */
 contract ContentConfig is IConfig, BaseRoleCheckerPausable {
-    string ACCESS_TYPE_VIEW_MONTHLY = "access-type-view-monthly";
-    string ACCESS_TYPE_ADVERTISE = "access-type-advertise";
 
     address paymentFacilitator;
     address owners;
     address contentContract;
-    mapping(string => address) accessNFTs;
+    // keccak256 of access type's name maps to the address of the Access NFT contract
+    mapping(bytes => address) accessNFTs;
 
     constructor(address _admin) {
         __BaseRoleCheckerPausable__init(_admin);
     }
     
-    function init(
+    function __ContentConfig__init(
         string[] memory _accessTypes,
         address[] memory _accessNFTs,
         address _paymentFacilitator,
@@ -33,7 +32,7 @@ contract ContentConfig is IConfig, BaseRoleCheckerPausable {
         require(_accessTypes.length == _accessNFTs.length);
 
         for (uint8 i = 0; i < _accessTypes.length; i++) {
-            accessNFTs[_accessTypes[i]] = _accessNFTs[i];
+            accessNFTs[keccak256(_accessTypes[i])] = _accessNFTs[i];
         }
 
         paymentFacilitator = _paymentFacilitator;
@@ -41,7 +40,7 @@ contract ContentConfig is IConfig, BaseRoleCheckerPausable {
         contentContract = _contentContract;
     }
 
-    function getPaymentFacilitator() external view returns(address){
+    function getPaymentFacilitator() external view returns(address) {
         return paymentFacilitator;
     }
 
@@ -49,8 +48,12 @@ contract ContentConfig is IConfig, BaseRoleCheckerPausable {
         return owners;
     }
 
-    function getAccessNFT(string memory _accessType) external view returns(address){
-        return accessNFTs[_accessType];
+    function getAccessNFT(string memory _accessType) external view returns(address) {
+        require(accessNFTs[keccak256(_accessType)], "Access type " + _accessType + " does not have a corresponding NFT");
+        return accessNFTs[keccak256(_accessType)];
     }
 
+    function getContentNFT() external view returns(address) {
+        return contentContract;
+    }
 }
