@@ -2,6 +2,10 @@
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "../../interfaces/IConfig.sol";
 
 /**
  * @title Owners ERC721 contract
@@ -11,9 +15,39 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
  * A token id on the Content Contract corresponds to the same token id on the Access NFTs and Owners NFT.
  */
 contract Owners is ERC721 {
-    address private config;
+    IConfig private config;
 
     constructor(address _contentConfig) ERC721("Access Payment Owners NFT", "APO") {
-        config = _contentConfig;
+        config = IConfig(_contentConfig);
+    }
+
+    /**
+     * Mints the `_owner` account an ERC721 which will allow funds paid to access to given token's content
+     * to be withdrawn by the `_owner`.
+     * 
+     * Requirements:
+     * - the content contract must implement EIP165 so that the NFT type can be determined
+     * - if the content contract is an ERC1155 then the msg.sender must own quantity > 0 of the given token `_id`
+     * 
+     * @param _id tokenId
+     * @param _owner the account which has the rights to withdraw funds paid to access the given token
+     */
+    function setOwner(uint256 _id, address _owner) external {
+        // content NFT can be ERC721 or ERC1155 or other
+        address contentContract = config.getContentNFT();
+        address contentOwner;
+        bool isApproved;
+        if (IERC165(contentContract).supportsInterface(0x80ac58cd)) {
+            // content contract supports the ERC721 interface
+            contentOwner = IERC721(contentContract).ownerOf(_id);
+            isApproved = IERC721(contentContract).isApprovedForAll(contentOwner, msg.sender);
+        } else if (IERC165(contentContract).supportsInterface(0xd9b67a26)) {
+            // content contract supports the ERC1155 interface
+            // the msg.sender must own some quantity of the tokenId on the ERC1155 content contract
+            require(IERC1155(contentContract).balanceOf(msg.sender, _id) > 0);
+            contentOwner = msg.sender;
+        }
+        require(msg.sender == contentOwner || isApproved, "Must own the token or be approved on the content contract to set the owner");
+        _safeMint(_owner, _id);
     }
 }
