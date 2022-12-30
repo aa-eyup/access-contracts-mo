@@ -27,9 +27,8 @@ contract ContentConfig is IConfig, BaseRoleCheckerPausable {
         address _paymentFacilitator,
         address _owners,
         address _contentContract
-    ) external onlyAdmin {
-        require(_accessTypes.length != 0 && _accessNFTs.length != 0);
-        require(_accessTypes.length == _accessNFTs.length);
+    ) external onlyAdmin initializer {
+        require(_accessTypes.length == _accessNFTs.length && _accessNFTs.length != 0);
 
         for (uint8 i = 0; i < _accessTypes.length; i++) {
             accessNFTs[keccak256(_accessTypes[i])] = _accessNFTs[i];
@@ -49,7 +48,7 @@ contract ContentConfig is IConfig, BaseRoleCheckerPausable {
     }
 
     function getAccessNFT(string memory _accessType) external view returns(address) {
-        require(accessNFTs[keccak256(_accessType)], "Access type " + _accessType + " does not have a corresponding NFT");
+        require(accessNFTs[keccak256(_accessType)], "Access type " + _accessType + " does not have a corresponding AccessNFT");
         return accessNFTs[keccak256(_accessType)];
     }
 

@@ -50,4 +50,25 @@ contract Owners is ERC721 {
         require(msg.sender == contentOwner || isApproved, "Must own the token or be approved on the content contract to set the owner");
         _safeMint(_owner, _id);
     }
+
+    function transferFrom(address from, address to, uint256 tokenId) public override verifyOwnerBalance(from) {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId) public override verifyOwnerBalance(from) {
+        super.safeTransferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public override verifyOwnerBalance(from) {
+        super.safeTransferFrom(from, to, tokenId, data);
+    }
+
+    modifier verifyOwnerBalance(address _owner) {
+        address paymentFacilitator = config.getPaymentFacilitator();
+        (bool checkBalanceSuccess, bytes memory balanceData) = paymentFacilitator.staticcall(abi.encodeWithSignature("getOwnerBalance(address)", _owner));
+        require(checkBalanceSuccess, "Failed to check outstanding balance credited to the current owner");
+        uint256 balance = abi.decode(balanceData, (uint256));
+        require(balance == 0, "Balance of current owner must be be 0 before transferring ownership");
+        _;
+    }
 }
