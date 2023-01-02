@@ -67,7 +67,7 @@ contract PaymentFacilitator {
 
         // update the amount owner of the content token has been paid
         address owner = owners.ownerOf(_id);
-        paid[owner] = paid[owner] + amountPaid;
+        paid[owner] += amountPaid;
 
         uint256 balance = accessNFT.balanceOf(_accessor, _id);
         if (!(balance > 0)) {
@@ -100,7 +100,7 @@ contract PaymentFacilitator {
         require(paid[owner] > 0);
         
         uint256 amountToWithdraw = paid[owner];
-        paid[owner] = paid[owner] - amountToWithdraw;
+        paid[owner] -= amountToWithdraw;
         paymentManager.withdraw(owner, amountToWithdraw);
         emit Withdraw(owner, amountToWithdraw, _id);
 

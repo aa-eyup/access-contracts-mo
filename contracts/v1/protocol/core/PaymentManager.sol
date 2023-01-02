@@ -34,7 +34,7 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         uint256 price = abi.decode(getPriceData, (uint256));
 
         // call on token to transferFrom funds (revert if call fails)
-        facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance + price;
+        facilitatorAccounts[msg.sender].balance += price;
         bool transferSuccess = doUSDCTransfer(_payer, address(this), price);
         require(transferSuccess, "failed to transfer USDC from payer");
 
@@ -43,7 +43,7 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
 
     function withdraw(address _recipient, uint256 _amount) external activeFacilitator {
         require(_amount <= facilitatorAccounts[msg.sender].balance);
-        facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance - _amount;
+        facilitatorAccounts[msg.sender].balance -= _amount;
         bool transferSuccess = doUSDCTransfer(address(this), _recipient, _amount);
         require(transferSuccess, "failed to transfer USDC from PaymentManager");
     }
