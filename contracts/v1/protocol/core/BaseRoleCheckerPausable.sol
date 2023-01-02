@@ -12,11 +12,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
  *  useful abilities like ugpradeability, pausability, access control, and re-entrancy guards.
  */
 
-contract BaseRoleCheckerPausable is
-  Initializable,
-  AccessControl,
-  Pausable,
-{
+contract BaseRoleCheckerPausable is Initializable, AccessControl, Pausable {
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 

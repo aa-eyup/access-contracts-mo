@@ -63,7 +63,7 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
     }
 
     modifier activeFacilitator() {
-        require(facilitatorAccounts[msg.sender] && facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
+        require(facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
         _;
     }
 }
