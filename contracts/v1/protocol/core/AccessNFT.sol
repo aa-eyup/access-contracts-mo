@@ -52,6 +52,10 @@ contract Access is ERC1155 {
         return prices[_id];
     }
 
+    function getPreviousPaymentTime(uint256 _id, address _accessor) external view returns(uint256) {
+        return previousPaymentTimestamp[_accessor][_id];
+    }
+
     modifier onlyFacilitator() {
         require(msg.sender == config.getPaymentFacilitator());
         _;

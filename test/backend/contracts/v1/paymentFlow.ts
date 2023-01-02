@@ -141,7 +141,15 @@ describe('pay for access flow', function () {
         await ownersNFT.connect(collectionOwner).setOwner(tokenId, paymentsOwner.address);
         await setPriceOfAccess(accessNFT, paymentsOwner, tokenId, ACCESS_COST);
         const tx = await pf.connect(payer).payFor(tokenId, AcccessTypes.HOURLY_VIEW, accessor.address);
-        
+        expect(tx).to.have.property('hash');
+        expect(tx).to.have.property('to', pf.address);
+
+        const previousPaymentTime = await accessNFT.getPreviousPaymentTime(tokenId, accessor.address);
+        expect(previousPaymentTime).to.be.gt(0);
+
+        await pf.connect(payer).payFor(tokenId, AcccessTypes.HOURLY_VIEW, accessor.address);
+        const updatedTime = await accessNFT.getPreviousPaymentTime(tokenId, accessor.address);
+        expect(previousPaymentTime).to.be.lt(updatedTime);
     });
 
     it('reverts when pay() on the PaymentManager is not called by active facilitator', async function () {
