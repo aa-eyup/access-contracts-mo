@@ -1,9 +1,23 @@
 import { ethers } from 'hardhat';
 import { Contract } from '@ethersproject/contracts/lib/index';
-import { AcccessTypes } from './types';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
-export const deployPaymentManager = async (adminAddress: string): Promise<Contract> => {
-    return await deployGenericContract('PaymentManager', [adminAddress]);
+import { AcccessTypes, NftType } from './types';
+
+export const deployPaymentManager = async (adminAddress: string, stableCoinAddress: string): Promise<Contract> => {
+    return await deployGenericContract('PaymentManager', [adminAddress, stableCoinAddress]);
+}
+
+export const deployStableCoin = async (payerAddress: string, mintAmount: number): Promise<Contract> => {
+    return await deployGenericContract('StableCoin', [payerAddress, mintAmount]);
+}
+
+export const deployContentContract = async (owner: string, tokenId: number, nftType: NftType): Promise<Contract> => {
+    if (nftType === NftType.ERC721) {
+        return await deployGenericContract('ContentContract721', [owner, tokenId]);
+    } else {
+        throw new Error('unsupport nft type');
+    }
 }
 
 export const deployContracts = async ({ adminSigner, paymentManagerContract, contentAddress }: Record<string, any>): Promise<Record<string, Contract>> => {
@@ -36,7 +50,16 @@ export const deployContracts = async ({ adminSigner, paymentManagerContract, con
         .connect(adminSigner)
         .setFacilitator(paymentFacilitator.address, true);
 
-    return { paymentFacilitator, config };
+    return { paymentFacilitator, config, accessNFT: accessHourly, ownersNFT: owners };
+}
+
+export const setPriceOfAccess = async (
+    accessNFT: Contract,
+    paymentsOwner: SignerWithAddress,
+    tokenId: number,
+    price: number
+): Promise<void> => {
+    await accessNFT.connect(paymentsOwner).setPrice(tokenId, price);
 }
 
 const deployGenericContract = async (contractName: string, args: any[]): Promise<Contract> => {

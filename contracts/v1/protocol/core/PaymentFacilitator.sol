@@ -63,7 +63,7 @@ contract PaymentFacilitator {
         IERC1155 accessNFT = IERC1155(config.getAccessNFT(_accessType));
         IERC721 owners = IERC721(config.getOwnersContract());
         // PaymentManager is responsible for actually pulling funds
-        uint256 amountPaid = paymentManager.pay(_payer, address(accessNFT), _id);
+        uint256 amountPaid = paymentManager.pay(_id, _payer, address(accessNFT));
 
         // update the amount owner of the content token has been paid
         address owner = owners.ownerOf(_id);

@@ -28,7 +28,7 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         USDC = IERC20(usdcAddress);
     }
     
-    function pay(address _payer, address _accessNFT, uint256 _tokenId) external activeFacilitator returns(uint256) {
+    function pay(uint256 _tokenId, address _payer, address _accessNFT) external activeFacilitator returns(uint256) {
         // call on AccessNFT to check amount to pull
         (bool getPriceSuccess, bytes memory getPriceData) = _accessNFT.staticcall(abi.encodeWithSignature("getPrice(uint256)", _tokenId));
         require(getPriceSuccess);
