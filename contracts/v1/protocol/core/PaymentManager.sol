@@ -15,7 +15,7 @@ import "./BaseRoleCheckerPausable.sol";
  */
 contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
 
-    IERC20 USDC = IERC20(0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E);
+    IERC20 USDC;
     mapping(address => FacilitatorAccount) facilitatorAccounts;
 
     struct FacilitatorAccount {
@@ -23,8 +23,9 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         bool active;
     }
 
-    constructor(address _admin) {
+    constructor(address _admin, address usdcAddress) {
         __BaseRoleCheckerPausable__init(_admin);
+        USDC = IERC20(usdcAddress);
     }
     
     function pay(address _payer, address _accessNFT, uint256 _tokenId) external activeFacilitator returns(uint256) {
