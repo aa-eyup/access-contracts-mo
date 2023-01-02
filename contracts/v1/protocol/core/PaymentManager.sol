@@ -15,7 +15,7 @@ import "./BaseRoleCheckerPausable.sol";
  */
 contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
 
-    IERC20 USDC = IERC20(0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E);
+    IERC20 USDC;
     mapping(address => FacilitatorAccount) facilitatorAccounts;
 
     struct FacilitatorAccount {
@@ -23,18 +23,19 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         bool active;
     }
 
-    constructor(address _admin) {
+    constructor(address _admin, address usdcAddress) {
         __BaseRoleCheckerPausable__init(_admin);
+        USDC = IERC20(usdcAddress);
     }
     
-    function pay(address _payer, address _accessNFT, uint256 _tokenId) external activeFacilitator returns(uint256) {
+    function pay(uint256 _tokenId, address _payer, address _accessNFT) external activeFacilitator returns(uint256) {
         // call on AccessNFT to check amount to pull
         (bool getPriceSuccess, bytes memory getPriceData) = _accessNFT.staticcall(abi.encodeWithSignature("getPrice(uint256)", _tokenId));
         require(getPriceSuccess);
         uint256 price = abi.decode(getPriceData, (uint256));
 
         // call on token to transferFrom funds (revert if call fails)
-        facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance + price;
+        facilitatorAccounts[msg.sender].balance += price;
         bool transferSuccess = doUSDCTransfer(_payer, address(this), price);
         require(transferSuccess, "failed to transfer USDC from payer");
 
@@ -43,7 +44,7 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
 
     function withdraw(address _recipient, uint256 _amount) external activeFacilitator {
         require(_amount <= facilitatorAccounts[msg.sender].balance);
-        facilitatorAccounts[msg.sender].balance = facilitatorAccounts[msg.sender].balance - _amount;
+        facilitatorAccounts[msg.sender].balance -= _amount;
         bool transferSuccess = doUSDCTransfer(address(this), _recipient, _amount);
         require(transferSuccess, "failed to transfer USDC from PaymentManager");
     }
@@ -63,7 +64,7 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
     }
 
     modifier activeFacilitator() {
-        require(facilitatorAccounts[msg.sender] && facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
+        require(facilitatorAccounts[msg.sender].active, "must be called by an active PaymentFacilitator contract");
         _;
     }
 }

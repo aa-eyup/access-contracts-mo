@@ -15,7 +15,7 @@ contract ContentConfig is IConfig, BaseRoleCheckerPausable {
     address owners;
     address contentContract;
     // keccak256 of access type's name maps to the address of the Access NFT contract
-    mapping(bytes => address) accessNFTs;
+    mapping(bytes32 => address) accessNFTs;
 
     constructor(address _admin) {
         __BaseRoleCheckerPausable__init(_admin);
@@ -27,11 +27,11 @@ contract ContentConfig is IConfig, BaseRoleCheckerPausable {
         address _paymentFacilitator,
         address _owners,
         address _contentContract
-    ) external onlyAdmin initializer {
+    ) external onlyAdmin {
         require(_accessTypes.length == _accessNFTs.length && _accessNFTs.length != 0);
 
         for (uint8 i = 0; i < _accessTypes.length; i++) {
-            accessNFTs[keccak256(_accessTypes[i])] = _accessNFTs[i];
+            accessNFTs[keccak256(abi.encodePacked(_accessTypes[i]))] = _accessNFTs[i];
         }
 
         paymentFacilitator = _paymentFacilitator;
@@ -48,8 +48,8 @@ contract ContentConfig is IConfig, BaseRoleCheckerPausable {
     }
 
     function getAccessNFT(string memory _accessType) external view returns(address) {
-        require(accessNFTs[keccak256(_accessType)], "Access type " + _accessType + " does not have a corresponding AccessNFT");
-        return accessNFTs[keccak256(_accessType)];
+        require(accessNFTs[keccak256(abi.encodePacked(_accessType))] != address(0), "Access type does not have a corresponding AccessNFT");
+        return accessNFTs[keccak256(abi.encodePacked(_accessType))];
     }
 
     function getContentNFT() external view returns(address) {
