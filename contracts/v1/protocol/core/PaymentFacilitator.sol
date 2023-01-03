@@ -20,8 +20,8 @@ contract PaymentFacilitator {
     IConfig private config;
     IPaymentManager private paymentManager;
 
-    // keep track of how much Owners are paid
-    mapping(address => uint256) paid;
+    // keep track of how much Owners are able to withdraw
+    mapping(address => uint256) ownerBalances;
 
     /**
      * @dev Emitted when tokens are transferred from `payer` to the PaymentManager contract to gain access to token `id` on the `accessNFT` contract
@@ -67,7 +67,7 @@ contract PaymentFacilitator {
 
         // update the amount owner of the content token has been paid
         address owner = owners.ownerOf(_id);
-        paid[owner] += amountPaid;
+        ownerBalances[owner] += amountPaid;
 
         uint256 balance = accessNFT.balanceOf(_accessor, _id);
         if (!(balance > 0)) {
@@ -91,16 +91,16 @@ contract PaymentFacilitator {
      * Requirements:
      *
      * - the caller of the function (msg.sender) must be owner of `_id` on the Owners contract
-     * - amount of funds paid to access the given `_id` must be greater than 0
+     * - amount of funds withdrawable must be greater than 0
      */
     function withdraw(uint256 _id) external returns(uint256) {
         IERC721 owners = IERC721(config.getOwnersContract());
         address owner = owners.ownerOf(_id);
         require(msg.sender == owner);
-        require(paid[owner] > 0);
+        require(ownerBalances[owner] > 0);
         
-        uint256 amountToWithdraw = paid[owner];
-        paid[owner] -= amountToWithdraw;
+        uint256 amountToWithdraw = ownerBalances[owner];
+        ownerBalances[owner] -= amountToWithdraw;
         paymentManager.withdraw(owner, amountToWithdraw);
         emit Withdraw(owner, amountToWithdraw, _id);
 
@@ -108,6 +108,6 @@ contract PaymentFacilitator {
     }
 
     function getOwnerBalance(address _owner) external view returns(uint256) {
-        return paid[_owner];
+        return ownerBalances[_owner];
     }
 }
