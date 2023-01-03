@@ -29,11 +29,16 @@ contract Owners is ERC721 {
      * - The redeemable balance by the Owner must be 0 in order to transfer Ownership.
      * - The content contract must implement EIP165 so that the NFT type can be determined
      * - if the content contract is an ERC1155 then the msg.sender must own quantity > 0 of the given token `_id`
+     * - `_id` must not yet be minted (owned by an account)
      * 
      * @param _id tokenId
      * @param _owner the account which has the rights to withdraw funds paid to access the given token
      */
     function setOwner(uint256 _id, address _owner) external {
+        // require current owner to be address(0)
+        address currentOwner = _ownerOf(_id);
+        require(currentOwner == address(0), "Owner ERC721 must be transferred to next owner");
+
         // content NFT can be ERC721 or ERC1155 or other
         address contentContract = config.getContentNFT();
         address contentOwner;
