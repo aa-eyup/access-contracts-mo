@@ -155,4 +155,24 @@ describe('pay for access flow', function () {
     it('reverts when pay() on the PaymentManager is not called by active facilitator', async function () {
         await expect(pm.pay(accessor.address, payer.address, accessNFT.address)).to.be.revertedWith('must be called by an active PaymentFacilitator contract');
     });
+
+    it('reverts when the paying account does not have enough funds for access', async function () {
+        await stableCoin.connect(payer).approve(pm.address, 1000000000000);
+        const newPrice = 999999999;
+        await setPriceOfAccess(accessNFT, paymentsOwner, TOKEN_ID, newPrice);
+        await expect(pf.connect(payer).pay(TOKEN_ID, AcccessTypes.HOURLY_VIEW)).to.be.revertedWith("ERC20: transfer amount exceeds balance");
+        // change price back to default
+        await setPriceOfAccess(accessNFT, paymentsOwner, TOKEN_ID, ACCESS_COST);
+        // change allowance back
+        await stableCoin.connect(payer).approve(pm.address, INITIAL_PAYER_BALANCE);
+
+    });
+
+    it('reverts when the PaymentManager contract is not approved to access enough funds', async function () {
+        const newPrice = 1000000000000;
+        await setPriceOfAccess(accessNFT, paymentsOwner, TOKEN_ID, newPrice);
+        await expect(pf.connect(payer).pay(TOKEN_ID, AcccessTypes.HOURLY_VIEW)).to.be.revertedWith("ERC20: insufficient allowance");
+        // change price back to default
+        await setPriceOfAccess(accessNFT, paymentsOwner, TOKEN_ID, ACCESS_COST);
+    });
 });
