@@ -175,4 +175,8 @@ describe('pay for access flow', function () {
         // change price back to default
         await setPriceOfAccess(accessNFT, paymentsOwner, TOKEN_ID, ACCESS_COST);
     });
+
+    it('reverts when trying to pay through a deactivated PaymentFacilitator', async function () {
+        // TODO
+    });
 });

@@ -28,9 +28,9 @@ contract PaymentFacilitator {
      */
     event AccessPayment(address indexed accessNFT, address indexed accessor, address indexed payer, uint256 id);
     /**
-     * @dev Emitted when an owner withdraws funds which were paid to access a given `id` accross all `accessNFT`s
+     * @dev Emitted when an owner withdraws funds which were paid to access 1 or more tokens accross all `accessNFT` contracts
      */
-    event Withdraw(address indexed owner, uint256 amount, uint256 id);
+    event Withdraw(address indexed owner, uint256 amount);
 
     constructor (address _contentConfig, address _paymentManager) {
         config = IConfig(_contentConfig);
@@ -82,9 +82,11 @@ contract PaymentFacilitator {
     }
 
     /**
-     * @dev Creates a transfer from the PaymentManager contract to the owner of the `_id` 
-     * as identified by the Owners NFT contract (not the owner of the id on the Content Contract).
+     * @dev Creates a transfer from the PaymentManager contract to the msg.sender if the msg.sender has any redeemable funds.
      * 1 owner maps to multiple accessNFTs so the owner has the rights to all funds paid for multiple access types.
+     * The withdrawal flow is designed this way so that the Owner does not
+     * have to create a withdrawal transaction for every single token they "own"
+     * the rights to the payments for.
      *
      * Emits a {Withdraw} event.
      *
@@ -93,16 +95,13 @@ contract PaymentFacilitator {
      * - the caller of the function (msg.sender) must be owner of `_id` on the Owners contract
      * - amount of funds withdrawable must be greater than 0
      */
-    function withdraw(uint256 _id) external returns(uint256) {
-        IERC721 owners = IERC721(config.getOwnersContract());
-        address owner = owners.ownerOf(_id);
-        require(msg.sender == owner);
-        require(ownerBalances[owner] > 0);
+    function withdraw() external returns(uint256) {
+        require(ownerBalances[msg.sender] > 0, "Withdrawal error: 0 funds available");
         
-        uint256 amountToWithdraw = ownerBalances[owner];
-        ownerBalances[owner] -= amountToWithdraw;
-        paymentManager.withdraw(owner, amountToWithdraw);
-        emit Withdraw(owner, amountToWithdraw, _id);
+        uint256 amountToWithdraw = ownerBalances[msg.sender];
+        ownerBalances[msg.sender] -= amountToWithdraw;
+        paymentManager.withdraw(msg.sender, amountToWithdraw);
+        emit Withdraw(msg.sender, amountToWithdraw);
 
         return (amountToWithdraw);
     }
