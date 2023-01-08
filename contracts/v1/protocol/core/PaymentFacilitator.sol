@@ -66,8 +66,11 @@ contract PaymentFacilitator {
         uint256 amountPaid = paymentManager.pay(_id, _payer, address(accessNFT));
 
         // update the amount owner of the content token has been paid
-        address owner = owners.ownerOf(_id);
-        ownerBalances[owner] += amountPaid;
+        try owners.ownerOf(_id) returns (address owner) {
+            ownerBalances[owner] += amountPaid;
+        } catch {
+            revert("Payment error: owner must be set");
+        }
 
         uint256 balance = accessNFT.balanceOf(_accessor, _id);
         if (!(balance > 0)) {

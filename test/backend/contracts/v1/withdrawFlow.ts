@@ -74,7 +74,7 @@ describe('withdraw flow', function () {
         console.log('Access NFT address: ', accessNFT.address)
     });
 
-    it('funds are transferred from the PaymentManager owner to the owner', async function () {
+    it('funds are transferred from the PaymentManager contract to the owner', async function () {
         // make a payment to transfer funds to the PaymentManager contract
         const tx = await pf.connect(payer).pay(TOKEN_ID, AcccessTypes.HOURLY_VIEW);
         expect(tx).to.have.property('hash');
@@ -88,7 +88,7 @@ describe('withdraw flow', function () {
         const amountRedeemable = await pf.getOwnerBalance(paymentsOwner.address);
         expect(amountRedeemable).to.equal(ACCESS_COST);
         
-        // withdraw the funds
+        // withdraw the funds as the account which was set as the "paymentsOwner" for 1 or more tokens
         await pf.connect(paymentsOwner).withdraw();
         const paymentOwnerBalancePostWithdraw = await stableCoin.balanceOf(paymentsOwner.address);
         expect(paymentOwnerBalancePostWithdraw).to.equal(ACCESS_COST);

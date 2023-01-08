@@ -152,10 +152,6 @@ describe('pay for access flow', function () {
         expect(previousPaymentTime).to.be.lt(updatedTime);
     });
 
-    it('reverts when pay() on the PaymentManager is not called by active facilitator', async function () {
-        await expect(pm.pay(accessor.address, payer.address, accessNFT.address)).to.be.revertedWith('must be called by an active PaymentFacilitator contract');
-    });
-
     it('reverts when the paying account does not have enough funds for access', async function () {
         await stableCoin.connect(payer).approve(pm.address, 1000000000000);
         const newPrice = 999999999;
@@ -177,6 +173,18 @@ describe('pay for access flow', function () {
     });
 
     it('reverts when trying to pay through a deactivated PaymentFacilitator', async function () {
-        // TODO
+        // be sure to withdraw all funds which can be withdrawn from the PF
+        await pf.connect(paymentsOwner).withdraw();
+        await pm.connect(admin).setFacilitator(pf.address, false);
+        await expect(pf.connect(payer).pay(TOKEN_ID, AcccessTypes.HOURLY_VIEW)).to.be.revertedWith('PaymentManager must be called by an active PaymentFacilitator contract');
+        // re-activate PF
+        await pm.connect(admin).setFacilitator(pf.address, true);
+    });
+
+    it('reverts if owner is not set for the tokenId being paid for', async function () {
+        // use a unique token to ensure the owner has never been set
+        const tokenId = 1003;
+        await contentContract.mint(collectionOwner.address, tokenId);
+        await expect(pf.connect(accessor).pay(tokenId, AcccessTypes.HOURLY_VIEW)).to.be.revertedWith('Payment error: owner must be set');
     });
 });
