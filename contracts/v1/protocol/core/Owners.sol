@@ -37,7 +37,7 @@ contract Owners is ERC721 {
     function setOwner(uint256 _id, address _owner) external {
         // require current owner to be address(0)
         address currentOwner = _ownerOf(_id);
-        require(currentOwner == address(0), "Owner ERC721 must be transferred to next owner");
+        require(currentOwner == address(0), "Owner ERC721 token must be transferred to next owner");
 
         // content NFT can be ERC721 or ERC1155 or other
         address contentContract = config.getContentNFT();
