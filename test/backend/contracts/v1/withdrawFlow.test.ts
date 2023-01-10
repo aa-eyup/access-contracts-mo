@@ -11,7 +11,7 @@ import {
     deployStableCoin,
     setPriceOfAccess,
 } from './utils';
-import { AcccessTypes, NftType } from './types';
+import { AccessTypes, NftType } from './types';
 
 describe('withdraw flow', function () {
     const TOKEN_ID = 132;
@@ -76,7 +76,7 @@ describe('withdraw flow', function () {
 
     it('funds are transferred from the PaymentManager contract to the owner', async function () {
         // make a payment to transfer funds to the PaymentManager contract
-        const tx = await pf.connect(payer).pay(TOKEN_ID, AcccessTypes.HOURLY_VIEW);
+        const tx = await pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW);
         expect(tx).to.have.property('hash');
         expect(tx).to.have.property('to', pf.address);
 
@@ -110,7 +110,7 @@ describe('withdraw flow', function () {
 
     it('reverts when trying to deactivate facilitator with an account balance on the PaymentManager', async function () {
         // make a payment to transfer funds to the PaymentManager contract
-        const tx = await pf.connect(payer).pay(TOKEN_ID, AcccessTypes.HOURLY_VIEW);
+        const tx = await pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW);
         expect(tx).to.have.property('hash');
         expect(tx).to.have.property('to', pf.address);
 
