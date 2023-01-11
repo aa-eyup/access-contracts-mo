@@ -47,13 +47,13 @@ contract Owners is ERC721 {
             // content contract supports the ERC721 interface
             contentOwner = IERC721(contentContract).ownerOf(_id);
             isApproved = IERC721(contentContract).isApprovedForAll(contentOwner, msg.sender);
+            require(msg.sender == contentOwner || isApproved, "Set Owner error: must own the token or be approved for all on the ERC721 content contract");
         } else if (IERC165(contentContract).supportsInterface(0xd9b67a26)) {
             // content contract supports the ERC1155 interface
             // the msg.sender must own some quantity of the tokenId on the ERC1155 content contract
-            require(IERC1155(contentContract).balanceOf(msg.sender, _id) > 0);
+            require(IERC1155(contentContract).balanceOf(msg.sender, _id) > 0, "Set Owner error: the owner of the ERC1155 content token must set the owner");
             contentOwner = msg.sender;
         }
-        require(msg.sender == contentOwner || isApproved, "Must own the token or be approved on the content contract to set the owner");
         _safeMint(_owner, _id);
     }
 
@@ -74,7 +74,7 @@ contract Owners is ERC721 {
         (bool checkBalanceSuccess, bytes memory balanceData) = paymentFacilitator.staticcall(abi.encodeWithSignature("getOwnerBalance(address)", _owner));
         require(checkBalanceSuccess, "Failed to check outstanding balance credited to the current owner");
         uint256 balance = abi.decode(balanceData, (uint256));
-        require(balance == 0, "Balance of current owner must be be 0 before transferring ownership");
+        require(balance == 0, "Transfer Owner token error: redeemable balance of current owner must be 0");
         _;
     }
 }
