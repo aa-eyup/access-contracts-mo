@@ -38,13 +38,16 @@ contract BaseRoleCheckerPausable is Initializable, AccessControl, Pausable {
     _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
   }
 
-  function isAdmin() public view returns (bool) {
-    return hasRole(ADMIN_ROLE, _msgSender());
+  function grantAdminRole(address _account) external onlyAdmin {
+    grantRole(ADMIN_ROLE, _account);
   }
 
-  modifier onlyAdmin() {
-    require(isAdmin(), "Must have admin role to perform this action");
-    _;
+  function revokeAdminRole(address _account) external onlyAdmin {
+    revokeRole(ADMIN_ROLE, _account);
+  }
+
+  function isAdmin() public view returns (bool) {
+    return hasRole(ADMIN_ROLE, _msgSender());
   }
 
   /**
@@ -72,6 +75,11 @@ contract BaseRoleCheckerPausable is Initializable, AccessControl, Pausable {
    */
   function unpause() public onlyPauserRole {
     _unpause();
+  }
+
+  modifier onlyAdmin() {
+    require(isAdmin(), "Must have admin role to perform this action");
+    _;
   }
 
   modifier onlyPauserRole() {

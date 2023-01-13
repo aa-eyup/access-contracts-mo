@@ -15,7 +15,7 @@ import "./BaseRoleCheckerPausable.sol";
  */
 contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
 
-    IERC20 USDC;
+    IERC20 stableCoin;
     mapping(address => FacilitatorAccount) facilitatorAccounts;
 
     struct FacilitatorAccount {
@@ -23,9 +23,9 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         bool active;
     }
 
-    constructor(address _admin, address usdcAddress) {
+    constructor(address _admin, address _stableCoinAddress) {
         __BaseRoleCheckerPausable__init(_admin);
-        USDC = IERC20(usdcAddress);
+        stableCoin = IERC20(_stableCoinAddress);
     }
     
     function pay(uint256 _tokenId, address _payer, address _accessNFT) external activeFacilitator returns(uint256) {
@@ -36,8 +36,8 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
 
         // call on token to transferFrom funds (revert if call fails)
         facilitatorAccounts[msg.sender].balance += price;
-        bool transferSuccess = doUSDCTransfer(_payer, address(this), price);
-        require(transferSuccess, "failed to transfer USDC from payer");
+        bool transferSuccess = _doStableCoinTransfer(_payer, address(this), price);
+        require(transferSuccess, "failed to transfer stable coin from payer");
 
         return price;
     }
@@ -45,8 +45,8 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
     function withdraw(address _recipient, uint256 _amount) external activeFacilitator {
         require(_amount <= facilitatorAccounts[msg.sender].balance);
         facilitatorAccounts[msg.sender].balance -= _amount;
-        bool transferSuccess = doUSDCTransfer(address(this), _recipient, _amount);
-        require(transferSuccess, "failed to transfer USDC from PaymentManager");
+        bool transferSuccess = _doStableCoinTransfer(address(this), _recipient, _amount);
+        require(transferSuccess, "failed to transfer stable coin from PaymentManager");
     }
 
     function setFacilitator(address _facilitator, bool _active) external onlyAdmin {
@@ -57,13 +57,17 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         account.active = _active;
     }
 
-    function doUSDCTransfer(address _from, address _to, uint256 _amount) private returns(bool) {
-        require(_to != address(0), "can not transfer USDC to 0 address");
+    function setStableCoin(address _stableCoinAddress) external onlyAdmin {
+        stableCoin = IERC20(_stableCoinAddress);
+    }
+
+    function _doStableCoinTransfer(address _from, address _to, uint256 _amount) private returns(bool) {
+        require(_to != address(0), "can not transfer stable coin to 0 address");
         if (_from == address(this)) {
-            return USDC.transfer(_to, _amount);
+            return stableCoin.transfer(_to, _amount);
         }
-        require(_from != address(0), "can not transfer USDC from 0 address");
-        return USDC.transferFrom(_from, _to, _amount);
+        require(_from != address(0), "can not transfer stbale coin from 0 address");
+        return stableCoin.transferFrom(_from, _to, _amount);
     }
 
     modifier activeFacilitator() {
