@@ -74,11 +74,11 @@ contract PaymentFacilitator {
 
         uint256 balance = accessNFT.balanceOf(_accessor, _id);
         if (!(balance > 0)) {
-            (bool mintSuccess, ) = address(accessNFT).call(abi.encodeWithSignature("mint(uint256,address)", _id, _accessor));
-            require(mintSuccess, "failed to mint acces token");
+            (bool mintSuccess, ) = address(accessNFT).call(abi.encodeWithSignature("mint(address,uint256)", _accessor, _id));
+            require(mintSuccess, "Failed to mint Access token");
         }
         (bool setTimestampSuccess, ) = address(accessNFT).call(abi.encodeWithSignature("setPreviousPaymentTime(uint256,address)", _id, _accessor));
-        require(setTimestampSuccess, "failed to set previous payment timestamp");
+        require(setTimestampSuccess, "Failed to set previous payment timestamp");
 
         emit AccessPayment(address(accessNFT), _accessor, _payer, _id);
         return true;

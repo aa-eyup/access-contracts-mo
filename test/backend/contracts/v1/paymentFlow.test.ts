@@ -13,7 +13,7 @@ import {
 } from './utils';
 import { AccessTypes, NftType } from './types';
 
-describe('pay for access flow', function () {
+describe('Pay for Access Flow', function () {
     const TOKEN_ID = 132;
     const INITIAL_PAYER_BALANCE = 1000000000;
     const ACCESS_COST = 100;
@@ -152,6 +152,72 @@ describe('pay for access flow', function () {
         expect(previousPaymentTime).to.be.lt(updatedTime);
     });
 
+    it('successfully increments the supply of the token on the Access NFT', async function () {
+        // use a unique token to ensure the timestamp starts at 0
+        const tokenId = 1003;
+        expect(await accessNFT.totalSupply(tokenId)).to.be.equal(0);
+
+        await contentContract721.mint(collectionOwner.address, tokenId);
+        await ownersNFT.connect(collectionOwner).setOwner(tokenId, paymentsOwner.address);
+        await setPriceOfAccess(accessNFT, paymentsOwner, tokenId, ACCESS_COST);
+        const tx = await pf.connect(payer).payFor(tokenId, AccessTypes.HOURLY_VIEW, accessor.address);
+        expect(tx).to.have.property('hash');
+        expect(tx).to.have.property('to', pf.address);
+
+        expect(await accessNFT.totalSupply(tokenId)).to.be.equal(1);
+    });
+
+    it('reverts if the token on the Access NFT has hit its supply cap', async function () {
+        // use a unique token to ensure the timestamp starts at 0
+        const tokenId = 1004;
+        expect(await accessNFT.totalSupply(tokenId)).to.be.equal(0);
+
+        await contentContract721.mint(collectionOwner.address, tokenId);
+        await ownersNFT.connect(collectionOwner).setOwner(tokenId, paymentsOwner.address);
+        await setPriceOfAccess(accessNFT, paymentsOwner, tokenId, ACCESS_COST);
+        
+        // set supply limit (must be set by the paymentsOwner account)
+        await accessNFT.connect(paymentsOwner).setSupplyLimit(tokenId, 1);
+
+        const tx = await pf.connect(payer).payFor(tokenId, AccessTypes.HOURLY_VIEW, accessor.address);
+        expect(tx).to.have.property('hash');
+        expect(tx).to.have.property('to', pf.address);
+        // pay for the payer account which would have a balance of 0
+        await expect(pf.connect(payer).pay(tokenId, AccessTypes.HOURLY_VIEW)).to.be.revertedWith('Failed to mint Access token');
+    });
+
+    it('reverts if trying to set supply cap of an Access NFT token below the current supply', async function () {
+        // use a unique token to ensure the timestamp starts at 0
+        const tokenId = 1005;
+        expect(await accessNFT.totalSupply(tokenId)).to.be.equal(0);
+
+        await contentContract721.mint(collectionOwner.address, tokenId);
+        await ownersNFT.connect(collectionOwner).setOwner(tokenId, paymentsOwner.address);
+        await setPriceOfAccess(accessNFT, paymentsOwner, tokenId, ACCESS_COST);
+        
+        const tx = await pf.connect(payer).payFor(tokenId, AccessTypes.HOURLY_VIEW, accessor.address);
+        expect(tx).to.have.property('hash');
+        expect(tx).to.have.property('to', pf.address);
+        // pay for the payer account which would have a balance of 0
+        await pf.connect(payer).pay(tokenId, AccessTypes.HOURLY_VIEW);
+        
+        
+        // set supply limit (must be set by the paymentsOwner account)
+        await expect(accessNFT.connect(paymentsOwner).setSupplyLimit(tokenId, 1)).to.be.revertedWith('Set Supply error: limit can not be below current supply');
+    });
+
+    it('reverts if account trying to set supply cap of an Access NFT token is not the payment owner of the token', async function () {
+        // use a unique token to ensure the timestamp starts at 0
+        const tokenId = 1006;
+        expect(await accessNFT.totalSupply(tokenId)).to.be.equal(0);
+
+        await contentContract721.mint(collectionOwner.address, tokenId);
+        await ownersNFT.connect(collectionOwner).setOwner(tokenId, paymentsOwner.address);
+        await setPriceOfAccess(accessNFT, paymentsOwner, tokenId, ACCESS_COST);
+        
+        await expect(accessNFT.connect(collectionOwner).setSupplyLimit(tokenId, 1)).to.be.revertedWith('Set Supply error: must be payments owner');
+    });
+
     it('reverts when the paying account does not have enough funds for access', async function () {
         await stableCoin.connect(payer).approve(pm.address, 1000000000000);
         const newPrice = 999999999;
@@ -183,7 +249,7 @@ describe('pay for access flow', function () {
 
     it('reverts if owner is not set for the tokenId being paid for', async function () {
         // use a unique token to ensure the owner has never been set
-        const tokenId = 1003;
+        const tokenId = 1007;
         await contentContract721.mint(collectionOwner.address, tokenId);
         await expect(pf.connect(accessor).pay(tokenId, AccessTypes.HOURLY_VIEW)).to.be.revertedWith('Payment error: owner must be set');
     });
