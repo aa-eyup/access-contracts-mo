@@ -17,6 +17,9 @@ describe("Pay for Access Flow", function () {
   const TOKEN_ID = 132;
   const INITIAL_PAYER_BALANCE = 1000000000;
   const ACCESS_COST = 100;
+  const ACCESS_TYPE_BYTES = ethers.utils.keccak256(
+    ethers.utils.toUtf8Bytes(AccessTypes.HOURLY_VIEW)
+  );
   // accounts
   let admin: SignerWithAddress;
   let payer: SignerWithAddress;
@@ -80,7 +83,7 @@ describe("Pay for Access Flow", function () {
   });
 
   it("funds are transferred from the payer to the PaymentManager contract", async function () {
-    const tx = await pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW);
+    const tx = await pf.connect(payer).pay(TOKEN_ID, ACCESS_TYPE_BYTES);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
 
@@ -93,7 +96,7 @@ describe("Pay for Access Flow", function () {
 
   it("the accessor is the message sender if not specified", async function () {
     // check that the ERC1155 Access NFT is minted to the msg.sender
-    const tx = await pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW);
+    const tx = await pf.connect(payer).pay(TOKEN_ID, ACCESS_TYPE_BYTES);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
 
@@ -105,11 +108,11 @@ describe("Pay for Access Flow", function () {
   });
 
   it("does not mint an ERC1155 on the Access NFT is the accessor already possesses same token Id", async function () {
-    const tx = await pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW);
+    const tx = await pf.connect(payer).pay(TOKEN_ID, ACCESS_TYPE_BYTES);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
     // pay again
-    await pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW);
+    await pf.connect(payer).pay(TOKEN_ID, ACCESS_TYPE_BYTES);
 
     const balanceOfAccessToken = await accessNFT.balanceOf(
       payer.address,
@@ -128,7 +131,7 @@ describe("Pay for Access Flow", function () {
     await setPriceOfAccess(accessNFT, collectionOwner, tokenId, ACCESS_COST);
     const tx = await pf
       .connect(payer)
-      .payFor(tokenId, AccessTypes.HOURLY_VIEW, accessor.address);
+      .payFor(tokenId, ACCESS_TYPE_BYTES, accessor.address);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
 
@@ -147,7 +150,7 @@ describe("Pay for Access Flow", function () {
       paymentsOwner.address,
       TOKEN_ID
     );
-    const tx = await pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW);
+    const tx = await pf.connect(payer).pay(TOKEN_ID, ACCESS_TYPE_BYTES);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
     const priceToAccess = await accessNFT.getPrice(TOKEN_ID);
@@ -173,7 +176,7 @@ describe("Pay for Access Flow", function () {
     await setPriceOfAccess(accessNFT, collectionOwner, tokenId, ACCESS_COST);
     const tx = await pf
       .connect(payer)
-      .payFor(tokenId, AccessTypes.HOURLY_VIEW, accessor.address);
+      .payFor(tokenId, ACCESS_TYPE_BYTES, accessor.address);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
 
@@ -185,7 +188,7 @@ describe("Pay for Access Flow", function () {
 
     await pf
       .connect(payer)
-      .payFor(tokenId, AccessTypes.HOURLY_VIEW, accessor.address);
+      .payFor(tokenId, ACCESS_TYPE_BYTES, accessor.address);
     const updatedTime = await accessNFT.getPreviousPaymentTime(
       tokenId,
       accessor.address
@@ -205,7 +208,7 @@ describe("Pay for Access Flow", function () {
     await setPriceOfAccess(accessNFT, collectionOwner, tokenId, ACCESS_COST);
     const tx = await pf
       .connect(payer)
-      .payFor(tokenId, AccessTypes.HOURLY_VIEW, accessor.address);
+      .payFor(tokenId, ACCESS_TYPE_BYTES, accessor.address);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
 
@@ -227,12 +230,12 @@ describe("Pay for Access Flow", function () {
 
     const tx = await pf
       .connect(payer)
-      .payFor(tokenId, AccessTypes.HOURLY_VIEW, accessor.address);
+      .payFor(tokenId, ACCESS_TYPE_BYTES, accessor.address);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
     // pay for the payer account which would have a balance of 0
     await expect(
-      pf.connect(payer).pay(tokenId, AccessTypes.HOURLY_VIEW)
+      pf.connect(payer).pay(tokenId, ACCESS_TYPE_BYTES)
     ).to.be.revertedWith("PaymentFacilitator: access-mint-failed");
   });
 
@@ -249,11 +252,11 @@ describe("Pay for Access Flow", function () {
 
     const tx = await pf
       .connect(payer)
-      .payFor(tokenId, AccessTypes.HOURLY_VIEW, accessor.address);
+      .payFor(tokenId, ACCESS_TYPE_BYTES, accessor.address);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
     // pay for the payer account which would have a balance of 0
-    await pf.connect(payer).pay(tokenId, AccessTypes.HOURLY_VIEW);
+    await pf.connect(payer).pay(tokenId, ACCESS_TYPE_BYTES);
 
     await expect(
       accessNFT.connect(collectionOwner).setSupplyLimit(tokenId, 1)
@@ -282,7 +285,7 @@ describe("Pay for Access Flow", function () {
     const newPrice = balance + 1;
     await setPriceOfAccess(accessNFT, collectionOwner, TOKEN_ID, newPrice);
     await expect(
-      pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW)
+      pf.connect(payer).pay(TOKEN_ID, ACCESS_TYPE_BYTES)
     ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
   });
 
@@ -290,14 +293,14 @@ describe("Pay for Access Flow", function () {
     const newPrice = 1000000000000;
     await setPriceOfAccess(accessNFT, collectionOwner, TOKEN_ID, newPrice);
     await expect(
-      pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW)
+      pf.connect(payer).pay(TOKEN_ID, ACCESS_TYPE_BYTES)
     ).to.be.revertedWith("ERC20: insufficient allowance");
   });
 
   it("reverts when trying to pay through a deactivated PaymentFacilitator", async function () {
     await pm.connect(admin).setFacilitator(pf.address, false);
     await expect(
-      pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW)
+      pf.connect(payer).pay(TOKEN_ID, ACCESS_TYPE_BYTES)
     ).to.be.revertedWith(
       "PaymentManager must be called by an active PaymentFacilitator contract"
     );
