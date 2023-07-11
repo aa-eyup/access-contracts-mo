@@ -17,6 +17,9 @@ describe("Withdraw Flow", function () {
   const TOKEN_ID = 132;
   const INITIAL_PAYER_BALANCE = 1000000000;
   const ACCESS_COST = 100;
+  const ACCES__TYPE_BYTES = ethers.utils.keccak256(
+    ethers.utils.toUtf8Bytes(AccessTypes.HOURLY_VIEW)
+  );
   // accounts
   let admin: SignerWithAddress;
   let payer: SignerWithAddress;
@@ -82,7 +85,7 @@ describe("Withdraw Flow", function () {
 
   it("funds are transferred from the PaymentManager contract to the owner", async function () {
     // make a payment to transfer funds to the PaymentManager contract
-    const tx = await pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW);
+    const tx = await pf.connect(payer).pay(TOKEN_ID, ACCES__TYPE_BYTES);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
 
@@ -142,7 +145,7 @@ describe("Withdraw Flow", function () {
 
   it("reverts when trying to deactivate facilitator with an account balance on the PaymentManager", async function () {
     // make a payment to transfer funds to the PaymentManager contract
-    const tx = await pf.connect(payer).pay(TOKEN_ID, AccessTypes.HOURLY_VIEW);
+    const tx = await pf.connect(payer).pay(TOKEN_ID, ACCES__TYPE_BYTES);
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
 

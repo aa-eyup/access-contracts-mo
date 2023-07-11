@@ -50,7 +50,7 @@ export const deployContracts = async ({
 
   // deploy Access NFT(s)
   const accessHourly = await deployGenericContract("Access", [
-    AccessTypes.HOURLY_VIEW,
+    ethers.utils.keccak256(ethers.utils.toUtf8Bytes(AccessTypes.HOURLY_VIEW)),
     config.address,
     "",
   ]);
@@ -65,7 +65,11 @@ export const deployContracts = async ({
   await config
     .connect(adminSigner)
     .__ContentConfig__init(
-      [AccessTypes.HOURLY_VIEW],
+      [
+        ethers.utils.keccak256(
+          ethers.utils.toUtf8Bytes(AccessTypes.HOURLY_VIEW)
+        ),
+      ],
       [accessHourly.address],
       paymentFacilitator.address,
       owners.address,

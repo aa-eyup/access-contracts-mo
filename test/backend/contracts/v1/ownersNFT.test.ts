@@ -344,7 +344,13 @@ describe("Owners ERC721", function () {
       await setPriceOfAccess(accessNFT, collectionOwner, TOKEN_ID, ACCESS_COST);
       await pf
         .connect(payer)
-        .payFor(TOKEN_ID, AccessTypes.HOURLY_VIEW, accessor.address);
+        .payFor(
+          TOKEN_ID,
+          ethers.utils.keccak256(
+            ethers.utils.toUtf8Bytes(AccessTypes.HOURLY_VIEW)
+          ),
+          accessor.address
+        );
 
       const withdrawableBalance = await pf.getWithdrawableBalance(
         collectionOwner.address,

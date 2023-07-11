@@ -41,11 +41,11 @@ contract PaymentFacilitator {
         return withdrawable[_id][_account];
     }
 
-    function pay(uint256 _id, string memory _accessType) external returns(bool) {
+    function pay(uint256 _id, bytes32 _accessType) external returns(bool) {
         return _pay(_id, _accessType, msg.sender, msg.sender);
     }
 
-    function payFor(uint256 _id, string memory _accessType, address _accessor) external returns(bool) {
+    function payFor(uint256 _id, bytes32 _accessType, address _accessor) external returns(bool) {
         return _pay(_id, _accessType, _accessor, msg.sender);
     }
 
@@ -65,7 +65,7 @@ contract PaymentFacilitator {
      * - the PaymenetManager contract must be approved by the `_payer` on the stablecoin's ERC20 contract
      * - `_accessType` must be a valid access type which was set on the Config contract during initialization.
      */
-    function _pay(uint256 _id, string memory _accessType, address _accessor, address _payer) private returns(bool) {
+    function _pay(uint256 _id, bytes32 _accessType, address _accessor, address _payer) private returns(bool) {
         IERC1155 accessNFT = IERC1155(config.getAccessNFT(_accessType));
 
         // PaymentManager is responsible for pulling funds

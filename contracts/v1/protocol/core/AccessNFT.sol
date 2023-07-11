@@ -16,7 +16,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
  * TokenIds on this NFT contract map to the tokenId on the Contract Contract.
  */
 contract Access is ERC1155Supply {
-    string ACCESS_TYPE;
+    bytes32 ACCESS_TYPE;
     IConfig private config;
 
     // tokenId => price to access the token
@@ -26,7 +26,7 @@ contract Access is ERC1155Supply {
     // tokenId => supply limit
     mapping(uint256 => uint256) supplyLimit;
 
-    constructor(string memory _accessType, address _contentConfig, string memory uri_) ERC1155(uri_) {
+    constructor(bytes32 _accessType, address _contentConfig, string memory uri_) ERC1155(uri_) {
         ACCESS_TYPE = _accessType;
         config = IConfig(_contentConfig);
     }
