@@ -8,12 +8,13 @@ import "../../interfaces/IConfig.sol";
 /**
  * @title PaymentFacilitator contract
  * @notice Serves as access point to deposit/withdraw funds.
- * When a content accessor deposits funds to access content,
- * it will be sent to this contract which will then forward it to the PaymentManager contract.
- * When a content creator wants to withdraw funds, this contract will pull funds from PaymentManager
- * and then send them to the withdrawer.
- * This contract keeps track of how many funds were deposited to access a given token ID on the Content Contract.
- * Checks the AccessNFT to see if payer already has access, if not, mints token on AccessNFT for payer.
+ *
+ * This contract is responsible for the accounting necessary to facilitate
+ * payments and withdrawals.
+ * When a content accessor pays to access content, this contract will transfer
+ * funds to the PaymentManager contract.
+ * When a contents' payment owner(s) want to withdraw funds,
+ * this contract will pull funds from PaymentManager transferring them to the owner(s).
  */
 contract PaymentFacilitator {
     IConfig private config;
@@ -21,16 +22,6 @@ contract PaymentFacilitator {
 
     // tokenId => address => withdrawable amount
     mapping(uint256 => mapping(address => uint256)) private withdrawable;
-
-    /**
-     * @dev Emitted when tokens are transferred from `payer` to the PaymentManager contract to gain access to token `id` on the `accessNFT` contract
-     */
-    event AccessPayment(address indexed accessNFT, address indexed accessor, address indexed payer, uint256 id);
-
-    /**
-     * @dev Emitted when an owner withdraws funds which were paid to access 1 or more tokens accross all `accessNFT` contracts
-     */
-    event Withdraw(address indexed owner, uint256 amount);
 
     constructor (address _contentConfig, address _paymentManager) {
         config = IConfig(_contentConfig);
@@ -50,15 +41,14 @@ contract PaymentFacilitator {
     }
 
     /**
-     * @dev Creates a transfer from the `_payer` to the PaymentManager where the funds are earmarked for calling PaymentFacilitator contract.
+     * @dev Calls the PaymentManager to initiate a fund transfer.
+     * Allocates funds being paid to access accross the owners of the payments.
      *
      * The price to pay is looked up on the accessNFT.
      * If the balance of the `_accessor` for the given `_id` on the accessNFT is not greater than 0,
      * then a token with id `_id` will be minted to the `_accessor`.
      *
      * A timestamp will be set to reflect the time of payment for the `_accessor` and then given `_id` on the respective accessNFT.
-     *
-     * Emits a {AccessPayment} event.
      *
      * Requirements:
      *
@@ -69,7 +59,7 @@ contract PaymentFacilitator {
         IERC1155 accessNFT = IERC1155(config.getAccessNFT(_accessType));
 
         // PaymentManager is responsible for pulling funds
-        uint256 amountPaid = paymentManager.pay(_id, _payer, address(accessNFT));
+        uint256 amountPaid = paymentManager.pay(_id, _payer, address(accessNFT), _accessor, _accessType);
 
         (address[] memory tokenOwners, uint256[] memory share) = getAmountsForOwners(_id, amountPaid);
         mapping(address => uint256) storage withdrawableForToken = withdrawable[_id];
@@ -87,15 +77,12 @@ contract PaymentFacilitator {
 
         require(setTimestampSuccess, "PaymentFacilitator: failed-to-set-previous-payment-time");
 
-        emit AccessPayment(address(accessNFT), _accessor, _payer, _id);
         return true;
     }
 
     /**
      * @dev Creates a transfer from the PaymentManager contract to the msg.sender if the msg.sender has any redeemable funds.
      * 1 owner maps to multiple accessNFTs so the owner has the rights to all funds paid for multiple access types.
-     *
-     * Emits a {Withdraw} event.
      *
      * Requirements:
      *
@@ -112,8 +99,7 @@ contract PaymentFacilitator {
 
         require(withdrawable[_id][receiver] == 0, "PaymentFacilitator: incomplete-withdrawal");
 
-        paymentManager.withdraw(receiver, amountToWithdraw);
-        emit Withdraw(receiver, amountToWithdraw);
+        paymentManager.withdraw(receiver, amountToWithdraw, _id);
 
         return (amountToWithdraw);
     }

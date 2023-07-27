@@ -26,6 +26,11 @@ contract Access is ERC1155Supply {
     // tokenId => supply limit
     mapping(uint256 => uint256) supplyLimit;
 
+    /**
+     * @dev Emitted when an owner withdraws funds which were paid to access a token for all access types
+     */
+    event AccessPaymentTimestamp(address indexed accessor, uint256 indexed tokenId, uint256 timestamp);
+
     constructor(bytes32 _accessType, address _contentConfig, string memory uri_) ERC1155(uri_) {
         ACCESS_TYPE = _accessType;
         config = IConfig(_contentConfig);
@@ -46,7 +51,9 @@ contract Access is ERC1155Supply {
      * @param _accessor the account which benefits from the payment
      */
     function setPreviousPaymentTime(uint256 _id, address _accessor) external onlyFacilitator {
-        previousPaymentTimestamp[_accessor][_id] = block.timestamp;
+        uint256 timestamp = block.timestamp;
+        previousPaymentTimestamp[_accessor][_id] = timestamp;
+        emit AccessPaymentTimestamp(_accessor, _id, timestamp);
     }
 
     function setPrice(uint256 _id, uint256 _price) external onlyContentOwner(_id) {

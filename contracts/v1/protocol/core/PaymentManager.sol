@@ -23,12 +23,33 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         bool active;
     }
 
+    /**
+     * @dev Emitted when tokens are transferred from `payer` to the PaymentManager contract to gain access to token `id` on the `accessNFT` contract
+     */
+    event AccessPayment(address indexed accessNFT, address indexed accessor, uint256 indexed tokenId, bytes32 accessType, uint256 amount);
+
+    /**
+     * @dev Emitted when an owner withdraws funds which were paid to access a token for all access types
+     */
+    event Withdraw(address indexed owner, uint256 indexed tokenId, uint256 amount);
+
     constructor(address _admin, address _stableCoinAddress) {
         __BaseRoleCheckerPausable__init(_admin);
         stableCoin = IERC20(_stableCoinAddress);
     }
 
-    function pay(uint256 _tokenId, address _payer, address _accessNFT) external activeFacilitator returns(uint256) {
+    /**
+     * @notice PaymentManager must be approved/allowed to spend for spender on the stable coin contract.
+     *
+     * Emits a {AccessPayment} event.
+     */
+    function pay(
+        uint256 _tokenId,
+        address _payer,
+        address _accessNFT,
+        address _accessor,
+        bytes32 _accessType
+    ) external activeFacilitator returns(uint256) {
         // call on AccessNFT to check amount to pull
         (bool getPriceSuccess, bytes memory getPriceData) = _accessNFT.staticcall(abi.encodeWithSignature("getPrice(uint256)", _tokenId));
         require(getPriceSuccess);
@@ -39,14 +60,22 @@ contract PaymentManager is IPaymentManager, BaseRoleCheckerPausable {
         bool transferSuccess = _doStableCoinTransfer(_payer, address(this), price);
         require(transferSuccess, "failed to transfer stable coin from payer");
 
+        emit AccessPayment(_accessNFT, _accessor, _tokenId, _accessType, price);
+
         return price;
     }
 
-    function withdraw(address _recipient, uint256 _amount) external activeFacilitator {
+    /**
+     * @notice PaymentManager must be approved/allowed to spend for spender on the stable coin contract.
+     *
+     * Emits a {Withdraw} event.
+     */
+    function withdraw(address _recipient, uint256 _amount, uint256 _tokenId) external activeFacilitator {
         require(_amount <= facilitatorAccounts[msg.sender].balance);
         facilitatorAccounts[msg.sender].balance -= _amount;
         bool transferSuccess = _doStableCoinTransfer(address(this), _recipient, _amount);
         require(transferSuccess, "failed to transfer stable coin from PaymentManager");
+        emit Withdraw(_recipient, _tokenId, _amount);
     }
 
     function setFacilitator(address _facilitator, bool _active) external onlyAdmin {
