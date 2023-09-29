@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "../../interfaces/IConfig.sol";
 
@@ -19,11 +20,14 @@ import "../../interfaces/IConfig.sol";
  * A token id on the Content Contract corresponds to the same token id on the Access NFTs and Owners NFT.
  */
 contract Owners is ERC1155Supply {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     IConfig private config;
     // 1 token of this ERC1155 = 1 basis point of ownership
     uint16 public immutable FULL_OWNERSHIP_PERCENTAGE = 10000;
-    // use dynamic array to avoid over allocating space
-    mapping(uint256 => address[]) public owners;
+
+    // tokenId => Address Set
+    mapping(uint256 => EnumerableSet.AddressSet) private ownerSet;
 
     constructor(address _contentConfig) ERC1155("") {
         config = IConfig(_contentConfig);
@@ -56,8 +60,7 @@ contract Owners is ERC1155Supply {
             percentageTotal += _ownershipPercentages[i];
             // mint the token which represents ownership percentage
             _mint(_owners[i], _id, _ownershipPercentages[i], "");
-            // set owner into state
-            owners[_id].push(_owners[i]);
+            ownerSet[_id].add(_owners[i]);
         }
         require(percentageTotal == FULL_OWNERSHIP_PERCENTAGE, "Owners: invalid-ownership-sum");
     }
@@ -69,7 +72,7 @@ contract Owners is ERC1155Supply {
      * @param _id tokenId
      */
     function getOwners(uint256 _id) public view returns (address[] memory) {
-        return owners[_id];
+        return ownerSet[_id].values();
     }
 
      /**
@@ -111,35 +114,14 @@ contract Owners is ERC1155Supply {
     }
 
     function reassignOwners(address from, address to, uint256 _id) private {
-        int16 iTo = -1;
-        int16 iFrom = -1;
-        int16 firstZeroSlot = -1;
 
-        address[] storage tokenOwners = owners[_id];
-
-        for (uint16 i = 0; i < tokenOwners.length; i++) {
-            if (firstZeroSlot < 0 && tokenOwners[i] == address(0)) {
-                firstZeroSlot = int16(i);
-            }
-            if (tokenOwners[i] == to) {
-                iTo = int16(i);
-            }
-            if (tokenOwners[i] == from) {
-                iFrom = int16(i);
-            }
-            if (iTo >= 0 && iFrom >= 0) {
-                break;
-            }
-        }
-
-        require(iFrom >= 0, "Owners: from-account-not-owner");
+        require(ownerSet[_id].contains(from), "Owners: owner-set-missing-sender");
 
         if (balanceOf(from, _id) == 0) {
-            tokenOwners[uint16(iFrom)] = tokenOwners[tokenOwners.length - 1];
-            tokenOwners.pop();
+            ownerSet[_id].remove(from);
         }
-        if (iTo < 0) {
-            tokenOwners.push(to);
+        if (!ownerSet[_id].contains(to)) {
+            ownerSet[_id].add(to);
         }
     }
 

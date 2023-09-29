@@ -23,6 +23,9 @@ contract PaymentFacilitator {
     // tokenId => address => withdrawable amount
     mapping(uint256 => mapping(address => uint256)) private withdrawable;
 
+    // tokenId => amount paid
+    mapping(uint256 => uint256) private pendingAllocation;
+
     constructor (address _contentConfig, address _paymentManager) {
         config = IConfig(_contentConfig);
         paymentManager = IPaymentManager(_paymentManager);
@@ -32,12 +35,42 @@ contract PaymentFacilitator {
         return withdrawable[_id][_account];
     }
 
+    function getAmountPendingAllocation(uint256 _tokenId) public view returns(uint256) {
+        return pendingAllocation[_tokenId];
+    }
+
     function pay(uint256 _id, bytes32 _accessType) external returns(bool) {
         return _pay(_id, _accessType, msg.sender, msg.sender);
     }
 
     function payFor(uint256 _id, bytes32 _accessType, address _accessor) external returns(bool) {
         return _pay(_id, _accessType, _accessor, msg.sender);
+    }
+
+    /**
+     * @notice Costly operation if any funds are pending allocation to token owners due to O(N) complexity where N is the number of owners for {@param _tokenId}.
+     *
+     */
+    function allocateToOwners(uint256 _tokenId) public {
+        uint256 amount = getAmountPendingAllocation(_tokenId);
+
+        if (!(amount > 0)) {
+            return;
+        }
+
+        (address[] memory tokenOwners, uint256[] memory share) = getAmountsForOwners(_tokenId, amount);
+
+        setAmountPendingAllocation(_tokenId, 0);
+
+        mapping(address => uint256) storage withdrawableForToken = withdrawable[_tokenId];
+
+        for (uint16 i = 0; i < tokenOwners.length; i++) {
+            withdrawableForToken[tokenOwners[i]] += share[i];
+        }
+    }
+
+    function setAmountPendingAllocation(uint256 _tokenId, uint256 _amount) private {
+        pendingAllocation[_tokenId] = _amount;
     }
 
     /**
@@ -61,11 +94,9 @@ contract PaymentFacilitator {
         // PaymentManager is responsible for pulling funds
         uint256 amountPaid = paymentManager.pay(_id, _payer, address(accessNFT), _accessor, _accessType);
 
-        (address[] memory tokenOwners, uint256[] memory share) = getAmountsForOwners(_id, amountPaid);
-        mapping(address => uint256) storage withdrawableForToken = withdrawable[_id];
-        for (uint16 i = 0; i < tokenOwners.length; i++) {
-            withdrawableForToken[tokenOwners[i]] += share[i];
-        }
+        // add to amount pending allocation to token owners
+        // allocating to owners on payment is costly
+        setAmountPendingAllocation(_id, getAmountPendingAllocation(_id) + amountPaid);
 
         uint256 balance = accessNFT.balanceOf(_accessor, _id);
         if (!(balance > 0)) {
@@ -81,6 +112,7 @@ contract PaymentFacilitator {
     }
 
     /**
+     * @notice Costly operation if amount pending allocation for given {@param _tokenId} is greater than 0 due to O(N) complexy where N is number of owners of token.
      * @dev Creates a transfer from the PaymentManager contract to the msg.sender if the msg.sender has any redeemable funds.
      * 1 owner maps to multiple accessNFTs so the owner has the rights to all funds paid for multiple access types.
      *
@@ -89,17 +121,19 @@ contract PaymentFacilitator {
      * - the caller of the function (msg.sender) must be owner of `_id` on the Owners contract
      * - amount of funds withdrawable must be greater than 0
      */
-    function withdraw(uint256 _id) external returns(uint256) {
+    function withdraw(uint256 _tokenId) external returns(uint256) {
+        allocateToOwners(_tokenId);
+
         address receiver = msg.sender;
-        uint256 amountToWithdraw = getWithdrawableBalance(receiver, _id);
+        uint256 amountToWithdraw = getWithdrawableBalance(receiver, _tokenId);
 
         require(amountToWithdraw > 0, "PaymentFacilitator: zero-withdrawable-amount");
 
-        withdrawable[_id][receiver] -= amountToWithdraw;
+        withdrawable[_tokenId][receiver] -= amountToWithdraw;
 
-        require(withdrawable[_id][receiver] == 0, "PaymentFacilitator: incomplete-withdrawal");
+        require(withdrawable[_tokenId][receiver] == 0, "PaymentFacilitator: incomplete-withdrawal");
 
-        paymentManager.withdraw(receiver, amountToWithdraw, _id);
+        paymentManager.withdraw(receiver, amountToWithdraw, _tokenId);
 
         return (amountToWithdraw);
     }

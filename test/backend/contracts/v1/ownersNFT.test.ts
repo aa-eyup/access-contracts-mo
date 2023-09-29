@@ -327,6 +327,56 @@ describe("Owners ERC721", function () {
       expect(amounts.map((b) => b.toNumber())).to.deep.equal(balances);
     });
 
+    it("succeeds to keep payment unallocated", async function () {
+      const owners = [collectionOwner.address, paymentsOwner.address];
+      const percentages = [6000, 4000];
+      await ownersNFT
+        .connect(collectionOwner)
+        .setOwners(TOKEN_ID, owners, percentages);
+      expect(
+        await ownersNFT.balanceOf(collectionOwner.address, TOKEN_ID)
+      ).to.equal(6000);
+      expect(
+        await ownersNFT.balanceOf(paymentsOwner.address, TOKEN_ID)
+      ).to.equal(4000);
+
+      // pay for access
+      await setPriceOfAccess(accessNFT, collectionOwner, TOKEN_ID, ACCESS_COST);
+      await pf
+        .connect(payer)
+        .payFor(
+          TOKEN_ID,
+          ethers.utils.keccak256(
+            ethers.utils.toUtf8Bytes(AccessTypes.HOURLY_VIEW)
+          ),
+          accessor.address
+        );
+
+      const withdrawableBalanceBefore = await pf.getWithdrawableBalance(
+        collectionOwner.address,
+        TOKEN_ID
+      );
+      expect(withdrawableBalanceBefore).to.be.equal(0);
+
+      const pendingAllocation = await pf.getAmountPendingAllocation(TOKEN_ID);
+
+      expect(pendingAllocation).to.be.equal(ACCESS_COST);
+
+      await pf.allocateToOwners(TOKEN_ID);
+
+      const withdrawableBalance = await pf.getWithdrawableBalance(
+        collectionOwner.address,
+        TOKEN_ID
+      );
+
+      expect(withdrawableBalance).to.be.greaterThan(0);
+
+      const pendingAllocationAfterWithdraw =
+        await pf.getAmountPendingAllocation(TOKEN_ID);
+
+      expect(pendingAllocationAfterWithdraw).to.be.equal(0);
+    });
+
     it("fails to transfer Owner token if current sender has a redeemable balance", async function () {
       const owners = [collectionOwner.address, paymentsOwner.address];
       const percentages = [6000, 4000];
@@ -352,10 +402,14 @@ describe("Owners ERC721", function () {
           accessor.address
         );
 
+      await pf.allocateToOwners(TOKEN_ID);
+
       const withdrawableBalance = await pf.getWithdrawableBalance(
         collectionOwner.address,
         TOKEN_ID
       );
+
+      expect(withdrawableBalance).to.be.greaterThan(0);
 
       await expect(
         ownersNFT

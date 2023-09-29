@@ -151,6 +151,10 @@ describe("Pay for Access Flow", function () {
       TOKEN_ID
     );
     const tx = await pf.connect(payer).pay(TOKEN_ID, ACCESS_TYPE_BYTES);
+
+    // manually allocate to owners
+    await pf.allocateToOwners(TOKEN_ID);
+
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
     const priceToAccess = await accessNFT.getPrice(TOKEN_ID);

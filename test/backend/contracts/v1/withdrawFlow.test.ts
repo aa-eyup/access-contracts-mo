@@ -38,7 +38,7 @@ describe("Withdraw Flow", function () {
   let owners = [];
   let percentages = [6000, 4000];
 
-  before(async function () {
+  beforeEach(async function () {
     [admin, payer, collectionOwner, paymentsOwner, accessor] =
       await ethers.getSigners();
 
@@ -89,6 +89,9 @@ describe("Withdraw Flow", function () {
     expect(tx).to.have.property("hash");
     expect(tx).to.have.property("to", pf.address);
 
+    // manually allocate to owners
+    await pf.allocateToOwners(TOKEN_ID);
+
     const pmBalance = await stableCoin.balanceOf(pm.address);
     expect(pmBalance.toNumber()).to.equal(ACCESS_COST);
     const paymentOwnerBalance = await stableCoin.balanceOf(
@@ -121,7 +124,6 @@ describe("Withdraw Flow", function () {
       paymentsOwner.address,
       TOKEN_ID
     );
-
     expect(amountRedeemablePostWithdraw).to.equal(0);
     const pmBalancePostWithdraw = await stableCoin.balanceOf(pm.address);
     expect(pmBalancePostWithdraw.toNumber()).to.equal(
