@@ -327,7 +327,7 @@ describe("Owners ERC721", function () {
       expect(amounts.map((b) => b.toNumber())).to.deep.equal(balances);
     });
 
-    it("succeeds to keeo payment unallocated", async function () {
+    it("succeeds to keep payment unallocated", async function () {
       const owners = [collectionOwner.address, paymentsOwner.address];
       const percentages = [6000, 4000];
       await ownersNFT
